@@ -1,0 +1,37 @@
+.bottom-bar {
+    background-color: #2a2a2a;
+    padding: 1rem;
+    overflow: hidden; /* Hide content when collapsing */
+    flex-shrink: 0; /* Prevent bottom-bar from shrinking on its own */
+    display: flex;
+    justify-content: space-between;
+
+}
+
+.resizer-y {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #4b4a4a;
+}
+
+.clinical-data-container {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    flex-grow: 1;
+
+}
+
+.input-text-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 1rem;
+}
+
+.llm-response-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 1rem;
+}

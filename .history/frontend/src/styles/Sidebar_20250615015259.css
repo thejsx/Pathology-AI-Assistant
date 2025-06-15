@@ -1,0 +1,25 @@
+
+.sidebar {
+    width: fit-content;
+    background-color: #2a2a2a;
+    padding: 1rem;
+    overflow: hidden; /* Hide content when collapsing */
+    flex-shrink: 0; /* Prevent sidebar from shrinking on its own */
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #444;
+}
+
+.sidebar-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+}
