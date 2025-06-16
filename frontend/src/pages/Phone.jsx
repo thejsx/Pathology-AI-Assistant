@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer/simplepeer.min.js";
-import { openSignallingSocket } from "../webrtc/signalling";
+import { openSignallingSocket } from "../communications/signalling";
 
 export default function Phone() {
   const videoRef  = useRef(null);

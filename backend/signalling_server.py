@@ -15,8 +15,6 @@ app.add_middleware(
 
 connections: list[dict] = []
 
-class ImagePayload(BaseModel):
-    image: str
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

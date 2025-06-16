@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { captureImage } from '../communications/mainServerAPI';
 
 export default function VideoControls({ streamRef }) {
     const [zoom, setZoom] = useState(1);
@@ -14,8 +15,8 @@ export default function VideoControls({ streamRef }) {
         targetElement.style.transform = `
             translate(${offset.x}px, ${offset.y}px)
             rotate(${rotate}deg)
-            scale(${zoom})
             scaleX(${flipX ? -1 : 1})
+            scale(${zoom})
         `;
     };
 
@@ -62,6 +63,63 @@ export default function VideoControls({ streamRef }) {
         }
     };
 
+    const imageCapture = async () => {
+        const videoElement = streamRef.current;
+        if (!videoElement) return;
+
+    
+        try {
+            // Create canvas to capture video frame
+            const imgCanvas = document.createElement('canvas');
+            const ctx = imgCanvas.getContext('2d');
+
+            const cssWidth = videoElement.clientWidth;
+            const cssHeight = videoElement.clientHeight;
+
+            const dpr  = window.devicePixelRatio || 1;
+            
+            imgCanvas.width  = cssWidth  * dpr;
+            imgCanvas.height = cssHeight * dpr;
+            ctx.scale(dpr, dpr);            // map back to CSS pixels
+            
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, cssWidth, cssHeight);
+            
+            // object-fit: contain   ➜   same algo the browser uses
+            const scale = Math.min(cssWidth / videoElement.videoWidth,
+                cssHeight / videoElement.videoHeight);
+            const drawW = videoElement.videoWidth  * scale;
+            const drawH = videoElement.videoHeight * scale;
+            
+            ctx.save();
+            // centre the frame
+            ctx.translate(cssWidth / 2, cssHeight / 2);
+            ctx.translate(offset.x, offset.y);
+            ctx.rotate(rotate * Math.PI / 180);
+                   
+            ctx.scale(flipX ? -zoom :  zoom, zoom);
+            
+            ctx.drawImage(videoElement, -drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
+    
+
+            // Convert final canvas to base64
+            const dataURL = imgCanvas.toDataURL('image/png');
+
+            // Send to main server
+            const result = await captureImage(dataURL, 'current_case_id');
+            console.log('Image captured and sent:', result);
+            
+            // Optional: Still open in new tab for preview
+            const blob = await new Promise(resolve => imgCanvas.toBlob(resolve, 'image/png'));
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            
+        } catch (error) {
+            console.error('Error capturing image:', error);
+        }
+    };
+
     return (
         <>
             {/* Collapsed state - show expand button */}
@@ -72,7 +130,7 @@ export default function VideoControls({ streamRef }) {
                         title="Show controls"
                         className="expand-btn"
                     >
-                        ☰
+                context.restore();        ☰
                     </button>
                 </div>
             )}
@@ -90,6 +148,7 @@ export default function VideoControls({ streamRef }) {
                             ×
                         </button>
                     </div>
+                    <button onClick={imageCapture}>Capture Image</button>
                     <button onClick={() => {setZoom(1); setOffset({ x: 0, y: 0 }); setRotate(0); setFlipX(false);}}>RESET</button>
                     <button onClick={() => setZoom(z => z * 1.1)}>Zoom +</button>
                     <button onClick={() => setZoom(z => z / 1.1)}>Zoom –</button>

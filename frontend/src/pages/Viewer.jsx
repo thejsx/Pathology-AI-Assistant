@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'simple-peer/simplepeer.min.js';
-import { openSignallingSocket } from '../webrtc/signalling';
+import { openSignallingSocket } from '../communications/signalling';
 import VideoControls from '../components/VideoControls';
 import ViewerLayout from '../components/ViewerLayout';
 // import SideBar from '../components/SideBar';
