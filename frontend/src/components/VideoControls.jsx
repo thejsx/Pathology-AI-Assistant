@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { captureImage } from '../communications/mainServerAPI';
+import { useContext } from 'react';
+import { CaseContext } from '../contexts/CaseContext.jsx';
 
 export default function VideoControls({ streamRef }) {
     const [zoom, setZoom] = useState(1);
@@ -7,6 +9,7 @@ export default function VideoControls({ streamRef }) {
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [flipX, setFlipX] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const { caseId } = useContext(CaseContext);
 
     const applyTransform = () => {
         const targetElement = streamRef.current;
@@ -63,6 +66,7 @@ export default function VideoControls({ streamRef }) {
         }
     };
 
+
     const imageCapture = async () => {
         const videoElement = streamRef.current;
         if (!videoElement) return;
@@ -107,13 +111,10 @@ export default function VideoControls({ streamRef }) {
             const dataURL = imgCanvas.toDataURL('image/png');
 
             // Send to main server
-            const result = await captureImage(dataURL, 'current_case_id');
+            const result = await captureImage(dataURL, caseId);
             console.log('Image captured and sent:', result);
             
-            // Optional: Still open in new tab for preview
-            const blob = await new Promise(resolve => imgCanvas.toBlob(resolve, 'image/png'));
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
+            window.dispatchEvent(new Event('imageCaptured'));
             
         } catch (error) {
             console.error('Error capturing image:', error);
@@ -130,7 +131,7 @@ export default function VideoControls({ streamRef }) {
                         title="Show controls"
                         className="expand-btn"
                     >
-                context.restore();        ☰
+                        ☰
                     </button>
                 </div>
             )}

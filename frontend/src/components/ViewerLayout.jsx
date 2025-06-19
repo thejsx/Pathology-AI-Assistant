@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import SideBar from '../components/SideBar';
+import SideBar from './SideBar';
 import BottomBar from './BottomBar';
 import '../styles/Viewer.css';
 
 export default function ViewerLayout({ videoStream, videoControls }) {
     const [bottomBarHeight, setBottomBarHeight] = useState(250);
-
     const [isResizingBottomBar, setIsResizingBottomBar] = useState(false);
+    const [mouseStartY, setMouseStartY] = useState(0);
 
 
     const handleBottomBarResize = useCallback((e) => {
         if (isResizingBottomBar) {
             // Set new height based on mouse position from the top of the viewport
-            const newHeight = Math.min(Math.max(window.innerHeight - e.clientY, 0), window.innerHeight / 2);
+            const mouseDeltaY = e.clientY - mouseStartY;
+            const newHeight = Math.min(Math.max(bottomBarHeight - mouseDeltaY, 0), window.innerHeight / 2);
             setBottomBarHeight(newHeight);
         }
     }, [isResizingBottomBar]);
+
+    const startResizing = useCallback((event) => {
+        event.preventDefault();
+        setIsResizingBottomBar(true);
+        setMouseStartY(event.clientY);
+    }, []);
 
     const stopResizing = useCallback(() => {
         setIsResizingBottomBar(false);
@@ -50,7 +57,7 @@ export default function ViewerLayout({ videoStream, videoControls }) {
 
             <div
                 className="resizer-x"
-                onMouseDown={() => setIsResizingBottomBar(true)}
+                onMouseDown={(event) => {startResizing(event)}}
             />
 
             <BottomBar

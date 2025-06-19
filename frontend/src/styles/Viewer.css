@@ -4,7 +4,7 @@
     height: 100vh;
     background-color: #1a1a1a;
     color: white;
-    overflow: hidden; /* Prevent scrollbars during resize */
+    overflow: auto; /* Prevent scrollbars during resize */
 }
 
 .sidebar-main-container {
@@ -39,7 +39,7 @@
 
 /* Horizontal Resizer (for bottom bar) */
 .resizer-x {
-    height: 10px;
+    height: 5px;
     cursor: row-resize;
     background-color: #444;
 }

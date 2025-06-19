@@ -3,7 +3,6 @@
     width: fit-content;
     background-color: #2a2a2a;
     padding: 1rem;
-    overflow: hidden; /* Hide content when collapsing */
     flex-shrink: 0; /* Prevent sidebar from shrinking on its own */
     display: flex;
     flex-direction: column;
@@ -12,16 +11,27 @@
 
 .sidebar-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: flex-start;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #444;
 }
 
-.sidebar-title {
+.sidebar-top-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sidebar-user {
     font-size: 14px;
-    font-weight: bold;
+    color: #fff;
+}
+
+.sidebar-case {
+    font-size: 14px;
     color: #fff;
 }
 
@@ -32,8 +42,6 @@
     font-size: 20px;
     cursor: pointer;
     padding: 0;
-    width: 24px;
-    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -46,8 +54,12 @@
 }
 
 .sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     flex-grow: 1;
     overflow-y: auto; /* Allow scrolling if content overflows */
+    align-items: flex-start;
 }
 
 .sidebar-collapsed {
@@ -73,3 +85,153 @@
 .expand-btn:hover {
         background-color: rgba(255, 255, 255, 0.1);
     }
+
+.cases-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-button {
+    width: 100%;
+    background-color: #444;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* .images-button-container {
+    position: relative;
+} */
+
+/* overlay for any fixed-position case or image modals */
+/* overlays for modals */
+.images-modal-overlay,
+.select-case-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* select-case modal container */
+.select-case-modal {
+    background-color: #2a2a2a;
+    padding: 1rem;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 1000;
+}
+
+.images-modal {
+    background-color: #2a2a2a;
+    padding: 1rem;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    width: fit-content;
+    height: fit-content;
+    max-width: 80vmin;
+    max-height: 80vmin;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
+}
+
+.lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.lightbox-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border: 2px solid #fff;
+    border-radius: 4px;
+}
+
+.image-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    color: #fff;
+}
+
+.image-item input {
+    margin-bottom: 0.25rem;
+}
+
+.thumbnail {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 1px solid #555;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+/* Actions buttons in images modal */
+.images-modal-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.images-modal-actions button {
+    background-color: #444;
+    color: #fff;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.images-modal-actions button:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+
+/* ------------ input field ------------ */
+.case-combobox .MuiOutlinedInput-root {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.case-combobox .MuiOutlinedInput-notchedOutline       { border-color: #555; }
+.case-combobox .MuiOutlinedInput-root:hover fieldset  { border-color: #777; }
+.case-combobox .MuiOutlinedInput-root.Mui-focused fieldset { border-color: #999; }
+
+/* ------------ dropdown (paper + options) ------------ */
+/* When disablePortal=true the paper sits inside .case-combobox */
+/* .case-combobox .MuiAutocomplete-paper,
+.case-combobox-popper .MuiAutocomplete-paper {      /* safety for portal case */
+  /* background-color: #1e1e1e; */
+  /* color: #fff; */
+/* } */ 
+
+.case-combobox-option[data-focus="true"] {
+  background-color: #333;
+}

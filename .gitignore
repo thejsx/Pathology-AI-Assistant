@@ -8,5 +8,6 @@ __pycache__/
 .DS_Store
 *.log
 /export_code.py
+/test.py
 .env
 .history

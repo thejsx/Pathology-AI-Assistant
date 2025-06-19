@@ -1,11 +1,22 @@
 
 import Phone from "./pages/Phone.jsx";
 import Viewer from "./pages/Viewer.jsx";
+import { CaseProvider } from "./contexts/CaseContext.jsx";
 
 export default function App() {
   const role = new URLSearchParams(location.search).get("role");
-  if (role === "phone") return <Phone />;
-  if (role === "viewer") return <Viewer />;
+  if (role === "phone")
+    return (
+      <CaseProvider>
+        <Phone />
+      </CaseProvider>
+    );
+  if (role === "viewer")
+    return (
+      <CaseProvider>
+        <Viewer />
+      </CaseProvider>
+    );
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
       <h1>Microscope App</h1>
