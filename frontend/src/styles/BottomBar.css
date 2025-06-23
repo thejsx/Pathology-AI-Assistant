@@ -8,8 +8,16 @@
 
 }
 
+.bottom-bar h2 {
+    font-size: 1rem;        /* smaller text */
+    margin: 0 0 1rem 0;    /* less vertical space */
+    text-align: center;
+}
+
+
 .resizer-y {
     width: 5px;
+    flex:none;
     cursor: col-resize;
     background-color: #4b4a4a;
 }
@@ -28,7 +36,18 @@
     flex-direction: column;
     flex-grow: 1;
     padding: 1rem;
+    align-items: flex-start;
     align-items: center;
+}
+
+.input-text-area {
+    width: 80%;
+    height: 80%;
+    resize: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 1rem;
 }
 
 .llm-response-container {
@@ -37,4 +56,17 @@
     flex-grow: 1;
     padding: 1rem;
     align-items: center;
+}
+
+.output-response-area {
+    white-space: pre-wrap;
+    width: 100%;
+    height: 100%;
+
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 1rem;
+    overflow-y: auto;
+    overflow-wrap: break-all;
 }

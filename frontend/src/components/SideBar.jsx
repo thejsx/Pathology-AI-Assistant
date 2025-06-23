@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import '../styles/SideBar.css';
 import { getImages, deleteImages, listCases, createNewCase } from '../communications/mainServerAPI';
-import { CaseContext } from '../contexts/CaseContext.jsx';
+import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
 
 
 
 export default function SideBar() {
-    const { caseId, setCaseId } = useContext(CaseContext);
+    const { caseId, setCaseId, selectedImages, setSelectedImages } = useGlobalStore();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [serverImages, setServerImages] = useState([]);
     const [imageCount, setImageCount] = useState(0);
     const [imagesModal, setImagesModal] = useState(false);
-    const [selectedImages, setSelectedImages] = useState([]);
     const [lightboxUrl, setLightboxUrl] = useState(null);
     const imagesButtonRef = useRef(null);
     const selectButtonRef = useRef(null);
@@ -53,6 +52,7 @@ export default function SideBar() {
     };
 
     const handleSelectAll = () => {
+
         setSelectedImages(serverImages.map(img => img.filename));
     };
 
@@ -215,23 +215,23 @@ export default function SideBar() {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
-                                                            onChange={() =>
-                                                                setSelectedImages(prev =>
-                                                                    prev.includes(image.filename)
-                                                                        ? prev.filter(f => f !== image.filename)
-                                                                        : [...prev, image.filename]
-                                                                )
-                                                            }
+                                                            onChange={() => {
+                                                                if (isChecked) {
+                                                                    setSelectedImages(selectedImages.filter(img => img !== image.filename));
+                                                                } else {
+                                                                    setSelectedImages([...selectedImages, image.filename]);
+                                                                }
+                                                            }}
+                                                            />
+                                                            {image.filename.split(".")[0]}
+                                                        </label>
+                                                        <img
+                                                            src={url}
+                                                            alt={image.filename}
+                                                            className="thumbnail"
+                                                            onClick={() => setLightboxUrl(url)}
                                                         />
-                                                        {image.filename.split(".")[0]}
-                                                    </label>
-                                                    <img
-                                                        src={url}
-                                                        alt={image.filename}
-                                                        className="thumbnail"
-                                                        onClick={() => setLightboxUrl(url)}
-                                                    />
-                                                </div>
+                                                    </div>
                                             );
                                         }))}
 

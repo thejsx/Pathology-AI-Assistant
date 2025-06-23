@@ -75,15 +75,16 @@ export async function createNewCase() {
     return response.json();
 }
 
-export async function processImages(caseId, imageIds) {
-    const response = await fetch(`${API_BASE}/process-llm`, {
+export async function processImages(caseId, selectedImages, prompt) {
+    const response = await fetch(`${API_BASE}/query-llm`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
             case_id: caseId,
-            image_ids: imageIds
+            image_ids: selectedImages,
+            prompt: prompt
         })
     });
     return response.json();

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import SideBar from './SideBar';
+import SideBar from './sideBar';
 import BottomBar from './BottomBar';
 import '../styles/Viewer.css';
+
 
 export default function ViewerLayout({ videoStream, videoControls }) {
     const [bottomBarHeight, setBottomBarHeight] = useState(250);
@@ -13,7 +14,7 @@ export default function ViewerLayout({ videoStream, videoControls }) {
         if (isResizingBottomBar) {
             // Set new height based on mouse position from the top of the viewport
             const mouseDeltaY = e.clientY - mouseStartY;
-            const newHeight = Math.min(Math.max(bottomBarHeight - mouseDeltaY, 0), window.innerHeight / 2);
+            const newHeight = Math.min(Math.max(bottomBarHeight - mouseDeltaY, 0), window.innerHeight * 0.8); // Limit height to a maximum of 80% of the viewport height
             setBottomBarHeight(newHeight);
         }
     }, [isResizingBottomBar]);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { captureImage } from '../communications/mainServerAPI';
 import { useContext } from 'react';
-import { CaseContext } from '../contexts/CaseContext.jsx';
+import useGlobalStore from '../../GlobalStore';
 
 export default function VideoControls({ streamRef }) {
     const [zoom, setZoom] = useState(1);
@@ -9,7 +9,7 @@ export default function VideoControls({ streamRef }) {
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [flipX, setFlipX] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const { caseId } = useContext(CaseContext);
+    const { caseId } = useGlobalStore();
 
     const applyTransform = () => {
         const targetElement = streamRef.current;

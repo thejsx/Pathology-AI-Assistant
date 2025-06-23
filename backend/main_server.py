@@ -35,9 +35,10 @@ class ProcessImagesPayload(BaseModel):
 class GetImagesPayload(BaseModel):
     case_id: str
 
-class ProcessPayload(BaseModel):
+class QueryLLMPayload(BaseModel):
     case_id: str
     image_ids: List[str]
+    prompt: str
 
 active_connections = {}
 
@@ -65,6 +66,7 @@ async def get_images(payload: GetImagesPayload):
 
 @app.get("/get-latest-case")
 async def get_latest_case():
+    print("Fetching latest case ID")
     case_id = functions.find_latest_case()
     return {"case_id": case_id}
 
@@ -88,7 +90,8 @@ async def create_new_case():
     case_id = functions.create_new_case()
     return {"case_id": case_id}
 
-@app.post("/process-images")
-async def process_images(payload: ProcessImagesPayload):
+@app.post("/query-llm")
+async def query_llm(payload: QueryLLMPayload):
+    print(f"Processing LLM query for case_id: {payload.case_id} with images: {payload.image_ids}")
     llm_response = llm_processing.main(payload)
     return {"response": llm_response}
