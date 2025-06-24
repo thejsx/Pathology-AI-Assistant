@@ -1,7 +1,7 @@
 .bottom-bar {
     background-color: #2a2a2a;
-    padding: 1rem;
-    overflow: hidden; /* Hide content when collapsing */
+    padding: 0.5rem;
+    overflow: auto; /* Hide content when collapsing */
     flex-shrink: 0; /* Prevent bottom-bar from shrinking on its own */
     display: flex;
     justify-content: space-between;
@@ -10,7 +10,7 @@
 
 .bottom-bar h2 {
     font-size: 1rem;        /* smaller text */
-    margin: 0 0 1rem 0;    /* less vertical space */
+    margin: 0 0 0.5rem 0;    /* less vertical space */
     text-align: center;
 }
 
@@ -25,7 +25,7 @@
 .clinical-data-container {
     display: flex;
     flex-direction: column;
-    padding: 1rem;
+    padding: 0.5rem;
     flex-grow: 1;
     align-items: center;
 
@@ -35,7 +35,7 @@
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    padding: 1rem;
+    padding: 0.5rem;
     align-items: flex-start;
     align-items: center;
 }
@@ -50,11 +50,19 @@
     font-size: 1rem;
 }
 
+.input-modifier-divs {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
 .llm-response-container {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    padding: 1rem;
+    padding: 0.5rem;
     align-items: center;
 }
 

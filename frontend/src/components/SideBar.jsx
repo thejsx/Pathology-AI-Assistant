@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import '../styles/SideBar.css';
-import { getImages, deleteImages, listCases, createNewCase } from '../communications/mainServerAPI';
+import { getImages, deleteImages, listCases, createNewCase, captureImage } from '../communications/mainServerAPI';
 import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
 
@@ -21,6 +21,8 @@ export default function SideBar() {
     const [selectCaseModal, setSelectCaseModal] = useState(false);
     const [casesList, setCasesList] = useState([]);
     const [caseInput, setCaseInput] = useState('');
+    const uploadInputRef = useRef(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         const handleImageCaptured = () => loadImages();
@@ -110,6 +112,36 @@ export default function SideBar() {
         setCaseId(caseInput.trim());
         setSelectCaseModal(false);
         setCaseInput('');
+    };
+
+    const handleUploadClick = () => {
+        uploadInputRef.current?.click();
+    };
+
+    const handleFilesChosen = async (event) => {
+        setIsUploading('selecting')
+        const files = Array.from(event.target.files || []);
+        if (files.length === 0) {
+            setIsUploading(false);
+            return};
+        setIsUploading('uploading');
+        try {
+            for (const file of files) {
+                const dataUrl = (file) => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                await captureImage(await dataUrl(file), caseId);
+            }
+            await loadImages();
+        } catch (error) {
+            console.error('Error uploading images:', error);
+        } finally {
+            setIsUploading(false);
+            event.current.value = ''; // Reset the input value
+        }
     };
 
 
@@ -237,8 +269,26 @@ export default function SideBar() {
 
                                     </div>
                                 </div>
-                            </div>
+                            </div>    
                         )}
+                        {/* hidden file input */}
+                        <input
+                            ref={uploadInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={handleFilesChosen}
+                        />
+
+                        {/* visible upload button */}
+                        <button
+                            className="sidebar-button"
+                            onClick={handleUploadClick}
+                            disabled={!caseId || isUploading}
+                            >
+                            {isUploading === 'selecting'? 'Awaiting selection..' : isUploading === 'uploading' ? 'Uploading...' : 'Upload Images'}
+                        </button>
                     </div>
                 </div>
             )}

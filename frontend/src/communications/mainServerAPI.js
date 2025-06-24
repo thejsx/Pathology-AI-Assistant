@@ -75,6 +75,23 @@ export async function createNewCase() {
     return response.json();
 }
 
+export async function uploadImages(caseId, files) {
+    const form = new FormData();
+    form.append('case_id', caseId);
+    files.forEach(f => form.append('files', f));   // 'files' matches backend field name
+
+    const response = await fetch(`/api/images/upload`, {  // adjust path as needed
+        method: 'POST',
+        body: form,
+        credentials: 'include'   // if you rely on cookies / auth
+    });
+
+    if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+    }
+    return response.json();      // { images: [...], count: n }
+}
+
 export async function processImages(caseId, selectedImages, prompt) {
     const response = await fetch(`${API_BASE}/query-llm`, {
         method: 'POST',
@@ -89,3 +106,18 @@ export async function processImages(caseId, selectedImages, prompt) {
     });
     return response.json();
 }
+
+export async function cancelLLMQuery(caseId) {
+    const response = await fetch(`${API_BASE}/cancel-llm-query`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ case_id: caseId }),
+    });
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
+

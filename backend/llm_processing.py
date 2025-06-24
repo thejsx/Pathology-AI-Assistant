@@ -5,21 +5,22 @@ import base64
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-client = openai.OpenAI()
+client = openai.AsyncOpenAI()
 
-def main(payload):
+async def main(payload):
     if len(payload.image_ids) == 0:
-        response = query_llm(payload.prompt, [], use_images=False)
+        response = await query_llm(payload.prompt, [], use_images=False)
         image_dict = {"status": "no_images", "images": []}
     else:
-        image_dict = process_images(payload.image_ids, payload.case_id)
+        image_dict = await process_images(payload.image_ids, payload.case_id)
         if image_dict.get("status") == "failed":
             return "Error processing images: No valid images found in database."
-    response = query_llm(payload.prompt, image_dict["images"])
-    print(f"LLM response: {response}")
-    return response
+    response = await query_llm(payload.prompt, image_dict["images"])
+    print(f"LLM token usage: {response.usage}")
 
-def process_images(image_ids, case_id):
+    return response.choices[0].message.content
+
+async def process_images(image_ids, case_id):
     image_contents = []
     base_dir = os.path.join("images", case_id)
     for image_id in image_ids:
@@ -31,7 +32,7 @@ def process_images(image_ids, case_id):
                     "type": "image_url",
                     "image_url": {
                         "url": f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}",
-                        "detail": "high"
+                        "detail": 'auto'
                     }
                 })
     if not image_contents:
@@ -39,32 +40,32 @@ def process_images(image_ids, case_id):
     return {"status": "success", "images": image_contents}
     
 
-def query_llm(prompt, images, use_images=True):
+async def query_llm(prompt, images, use_images=True):
     if not use_images or not images:
-        content_msg = "Please analyze the users prompt and provide a detailed response."
-        message_content = [{"type": "text", "text": prompt}]
+        system_msg = "Please analyze the users prompt and provide a detailed response."
+        content_msg = [{"type": "text", "text": prompt}]
     else:
-        content_msg = "Please analyze the images and answer questions/statements in the prompt, if applicable."
-        message_content = [
+        system_msg = "Please analyze the images and answer questions/statements in the prompt, if applicable."
+        content_msg = [
             {"type": "text", "text": prompt}
         ] + images
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="o3",  
             messages=[
                 {
                     "role": "system", 
-                    "content": content_msg
+                    "content": system_msg
                 },
                 {
                     "role": "user",
-                    "content": message_content
+                    "content": content_msg
                 }
             ],
             max_completion_tokens=4000,
-            temperature=1  # Lower temperature for more consistent medical analysis
+            reasoning_effort='medium'
         )
-        return response.choices[0].message.content
+        return response
         
     except Exception as e:
         print(f"Error querying LLM: {e}")

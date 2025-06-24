@@ -39,7 +39,7 @@
 
 /* Horizontal Resizer (for bottom bar) */
 .resizer-x {
-    height: 5px;
+    height: 10px;
     cursor: row-resize;
     background-color: #444;
 }

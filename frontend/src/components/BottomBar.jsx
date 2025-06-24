@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../styles/BottomBar.css';
-import {processImages} from '../communications/mainServerAPI.js' 
+import {processImages, cancelLLMQuery} from '../communications/mainServerAPI.js' 
 import useGlobalStore from '../../GlobalStore';
 
 export default function BottomBarContent({bottomBarHeight}) {
@@ -14,6 +14,7 @@ export default function BottomBarContent({bottomBarHeight}) {
     const [isResizingX, setIsResizingX] = useState(false);
     const [mouseStartX, setMouseStartX] = useState(0);
     const [yResizerPosition, setYResizerPosition] = useState();
+
 
 
     const startResizingX = useCallback((event) => {
@@ -82,7 +83,7 @@ export default function BottomBarContent({bottomBarHeight}) {
             setLlmResponse('Images selected but "Use selected images" checkbox is unchecked. Please check the box to use images with the query or unselect images.');
             return;
         }
-        setLlmResponse('Processing query and images...');
+        setLlmResponse('Processing images and/or query...');
         const response = await processImages(caseId, selectedImages, textValue);
         console.log('LLM Response:', response['response']);
         // if (!response.ok) {
@@ -132,7 +133,7 @@ export default function BottomBarContent({bottomBarHeight}) {
                     placeholder="Type here..."
                     rows={3}
                 />
-                <div className="input-text-modifiers">
+                <div className="input-modifier-divs">
                     <input
                         type="checkbox"
                         id="use-images-checkbox"
@@ -144,7 +145,23 @@ export default function BottomBarContent({bottomBarHeight}) {
                     <label htmlFor="use-images-checkbox">
                         {selectedImages.length > 0 ? `Use selected images (${selectedImages.length})`  : 'Send message without images'}
                     </label>
+                </div>
+                <div className="input-modifier-divs">
                     
+                    <select
+                        className="reasoning-effort-select"
+                        onChange={(e) => {
+                            // Handle reasoning effort change
+                            console.log('Reasoning effort changed to:', e.target.value);
+                        
+                        
+                        }} >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        defaultValue: 'medium'
+                    </select>                   
+                    <label htmlFor="reasoning-effort-select">Reasoning Effort</label>
                 </div>
             </div>
 
@@ -175,6 +192,23 @@ export default function BottomBarContent({bottomBarHeight}) {
                             navigator.clipboard.writeText(llmResponse);
                         }}>
                             Copy
+                    </button>
+                    <button
+                        className="llm-cancel-button"
+                        disabled={llmResponse !==  'Processing images and/or query...'}
+                        onClick={async () => {
+                            await cancelLLMQuery(caseId);
+                            setLlmResponse('LLM query cancelled.');
+                        }}>
+                            Cancel
+                    </button>
+                    <button
+                        className="history-button"
+                        onClick={() => {
+                            // Handle history button click
+                            console.log('History button clicked');
+                        }}>
+                            History
                     </button>
                 </div>
 

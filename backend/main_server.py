@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
+import asyncio
 import os
 import base64
 import functions
@@ -39,6 +40,12 @@ class QueryLLMPayload(BaseModel):
     case_id: str
     image_ids: List[str]
     prompt: str
+
+class CancelLLMPayload(BaseModel):
+    case_id: str
+
+
+active_llm_task = None
 
 active_connections = {}
 
@@ -92,6 +99,39 @@ async def create_new_case():
 
 @app.post("/query-llm")
 async def query_llm(payload: QueryLLMPayload):
+    global active_llm_task
+    if active_llm_task and not active_llm_task.done():
+        print("An LLM query is in progress, cancelling it.")
+        active_llm_task.cancel()
+        try:
+            await active_llm_task
+        except asyncio.CancelledError:
+            print("Cancelled the previous LLM task.")
+        except Exception as e:
+            print(f"Error cancelling previous LLM task: {e}")
+
     print(f"Processing LLM query for case_id: {payload.case_id} with images: {payload.image_ids}")
-    llm_response = llm_processing.main(payload)
-    return {"response": llm_response}
+    active_llm_task = asyncio.create_task(llm_processing.main(payload))
+    try:
+        llm_response = await active_llm_task
+        return {"response": llm_response}
+    except asyncio.CancelledError:
+        print("Current LLM task was cancelled.")
+    except Exception as e:
+        print(f"Error processing LLM query: {e}")
+
+@app.post("/cancel-llm-query")
+async def cancel_llm(payload: CancelLLMPayload):
+    global active_llm_task
+    if active_llm_task and not active_llm_task.done():
+        print("Cancelling the current LLM task.")
+        active_llm_task.cancel()
+        try:
+            await active_llm_task
+        except asyncio.CancelledError:
+            print("Cancelled the LLM task successfully.")
+        except Exception as e:
+            print(f"Error cancelling LLM task: {e}")
+    else:
+        print("No active LLM task to cancel.")
+    return {"status": "cancelled"}
