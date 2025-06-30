@@ -28,7 +28,20 @@
     padding: 0.5rem;
     flex-grow: 1;
     align-items: center;
+    min-height: 0; /* Important for flex children */
+}
 
+.clinical-data-text-area {
+    width: 100%;
+    flex: 1; /* Fill the remaining space in the container */
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 1rem;
+    overflow-y: auto;
+    overflow-wrap: break-all;
+    resize: none; /* Prevent manual resizing since it should fill space */
 }
 
 .input-text-container {
@@ -50,6 +63,14 @@
     font-size: 1rem;
 }
 
+.input-button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
 .input-modifier-divs {
     display: flex;
     justify-content: center;
@@ -69,12 +90,13 @@
 .output-response-area {
     white-space: pre-wrap;
     width: 100%;
-    height: 100%;
-
+    flex: 1; /* This makes it grow to fill available space */
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 0.5rem;
     font-size: 1rem;
     overflow-y: auto;
     overflow-wrap: break-all;
+    display: flex; /* Make this a flex container */
+    flex-direction: column;
 }

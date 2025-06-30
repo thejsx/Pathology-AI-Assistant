@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../styles/BottomBar.css';
-import {processImages, cancelLLMQuery} from '../communications/mainServerAPI.js' 
+import {processLlmQuery, cancelLLMQuery, appendLlmHistory} from '../communications/mainServerAPI.js' 
 import useGlobalStore from '../../GlobalStore';
+import HistoryModal from './HistoryModal';
 
 export default function BottomBarContent({bottomBarHeight}) {
-    const [textValue, setTextValue] = useState('');
-    const { selectedImages, caseId } = useGlobalStore();
+    const { settings, selectedImages, caseId, llmHistory, fetchHistory } = useGlobalStore();
+    const [clinicalData, setClinicalData] = useState(settings.clinicalData || 'No clinical data available.');
+    const [textValue, setTextValue] = useState(settings.defaultPrompt || '');
     const [llmResponse, setLlmResponse] = useState('No query currently made.');
     const [useImagesChecked, setUseImagesChecked] = useState(selectedImages.length > 0);
+    const [showHistory, setShowHistory] = useState(false);
     const [clinDataWidth, setClinDataWidth] = useState('30vw'); 
     const [inputTextWidth, setInputTextWidth] = useState('35vw');
     const [llmResponseWidth, setLlmResponseWidth] = useState('35vw');
@@ -84,12 +87,35 @@ export default function BottomBarContent({bottomBarHeight}) {
             return;
         }
         setLlmResponse('Processing images and/or query...');
-        const response = await processImages(caseId, selectedImages, textValue);
+
+        const options = {
+            ...(settings.maxTokens && { max_tokens: settings.maxTokens }),
+            ...(settings.includeClinicalData && clinicalData && { clinical_data: clinicalData }),
+            ...(settings.includeHistory && llmHistory && { llm_history: llmHistory }),
+        }
+
+        const currentPrompt = textValue.trim();
+        const currentCaseId = caseId
+        const currentImageCount = selectedImages.length;
+
+        const response = await processLlmQuery(
+            currentCaseId,
+            selectedImages,
+            currentPrompt,
+            settings.reasoningEffort,
+            options
+        );
         console.log('LLM Response:', response['response']);
-        // if (!response.ok) {
-        //     throw new Error(`HTTP error! status: ${response.status}`);
-        // }
+
         setLlmResponse(response['response']);
+        const llmHistEntry = {
+            case_id: currentCaseId,
+            prompt: currentPrompt,
+            image_count: currentImageCount,
+            response: response['response'],
+        };
+        appendLlmHistory(llmHistEntry);
+        await fetchHistory();  // Refresh history after appending
     }
 
     const handleUseImagesCheck = (event) => {
@@ -101,15 +127,29 @@ export default function BottomBarContent({bottomBarHeight}) {
         setUseImagesChecked(selectedImages.length > 0);
     }, [selectedImages]);
 
+    useEffect(() => {
+        // Update the text value with the default prompt from settings
+        setTextValue(settings.defaultPrompt);
+    }, [settings.defaultPrompt]);
+
     return (    
         <div className="bottom-bar" style={{ height: `${bottomBarHeight}px` }}>
             <div className="clinical-data-container"  style={{ width: clinDataWidth }}>
                 <h2>Clinical Data</h2>
+                <div className="output-response-area">
+                    
+                    <textarea
+                        value={clinicalData}
+                        onChange={(e) => {
+                            setClinicalData(e.target.value);
+                        }}
+                        className='clinical-data-text-area' />
+                </div>
             </div>
 
             <div 
                 className="resizer-y"
-                onMouseDown={(event) => {startResizingX(event); setYResizerPosition('left');}}
+                onMouseDown={(event) => { startResizingX(event); setYResizerPosition('left'); }}
             />
             
             <div className="input-text-container"  style={{ width: inputTextWidth }}>
@@ -132,7 +172,29 @@ export default function BottomBarContent({bottomBarHeight}) {
                     className="input-text-area"
                     placeholder="Type here..."
                     rows={3}
-                />
+                >
+                    {settings.defaultPrompt}
+                </textarea>
+                <div className="input-button-container">
+                    <button
+                        className="llm-call-button"
+                        onClick={() => llmCall(textValue)}
+                        disabled={
+                            llmResponse === 'Processing images and/or query...' || textValue.trim().length === 0
+                        }
+                    >
+                        Submit Query
+                    </button>
+                    <button
+                        className="llm-clear-button"
+                        onClick={() => {
+                            setLlmResponse('No query currently made.');
+                            setTextValue('');
+                        }}
+                    >
+                        Clear
+                    </button>
+                </div>
                 <div className="input-modifier-divs">
                     <input
                         type="checkbox"
@@ -146,23 +208,7 @@ export default function BottomBarContent({bottomBarHeight}) {
                         {selectedImages.length > 0 ? `Use selected images (${selectedImages.length})`  : 'Send message without images'}
                     </label>
                 </div>
-                <div className="input-modifier-divs">
-                    
-                    <select
-                        className="reasoning-effort-select"
-                        onChange={(e) => {
-                            // Handle reasoning effort change
-                            console.log('Reasoning effort changed to:', e.target.value);
-                        
-                        
-                        }} >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        defaultValue: 'medium'
-                    </select>                   
-                    <label htmlFor="reasoning-effort-select">Reasoning Effort</label>
-                </div>
+
             </div>
 
             <div 
@@ -181,7 +227,6 @@ export default function BottomBarContent({bottomBarHeight}) {
                     <button
                         className="llm-clear-button"
                         onClick={() => {
-                            setTextValue('');
                             setLlmResponse('No query currently made.');
                         }}                        >
                             Clear
@@ -198,21 +243,21 @@ export default function BottomBarContent({bottomBarHeight}) {
                         disabled={llmResponse !==  'Processing images and/or query...'}
                         onClick={async () => {
                             await cancelLLMQuery(caseId);
-                            setLlmResponse('LLM query cancelled.');
                         }}>
                             Cancel
                     </button>
                     <button
                         className="history-button"
                         onClick={() => {
-                            // Handle history button click
-                            console.log('History button clicked');
+                            setShowHistory(true); 
                         }}>
                             History
                     </button>
                 </div>
 
+
             </div>
+            <HistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
 
         </div>
     );

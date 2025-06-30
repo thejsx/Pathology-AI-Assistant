@@ -3,6 +3,7 @@ import '../styles/SideBar.css';
 import { getImages, deleteImages, listCases, createNewCase, captureImage } from '../communications/mainServerAPI';
 import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
+import UserSettingsModal from './UserSettingsModal';
 
 
 
@@ -23,12 +24,13 @@ export default function SideBar() {
     const [caseInput, setCaseInput] = useState('');
     const uploadInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
         const handleImageCaptured = () => loadImages();
         window.addEventListener('imageCaptured', handleImageCaptured);
         return () => window.removeEventListener('imageCaptured', handleImageCaptured);
-    }, [caseId]);
+    }, [caseId, serverImages]);
 
 
     useEffect(() => {
@@ -65,10 +67,13 @@ export default function SideBar() {
     const handleDeleteSelected = async () => {
         try {
             console.log('Deleting images:', selectedImages);
-            const data = await deleteImages(selectedImages, caseId);
-            setSelectedImages([]);
-            setServerImages(data.images);
-            setImageCount(data.count);
+            await deleteImages(selectedImages, caseId);
+            setServerImages(prev => prev.filter(img => !selectedImages.includes(img.filename)));
+            setImageCount(prev => prev - selectedImages.length);
+            setSelectedImages([]);           
+            // Rename serverImages to start at 1
+            setServerImages(prev => prev.map((img, index) => ({ ...img, filename: `Image ${`${index + 1}`.toString().padStart(2,0)}.png` })));
+
         } catch (error) {
             console.error('Error deleting images:', error);
         }
@@ -97,6 +102,7 @@ export default function SideBar() {
             const btn = selectButtonRef.current.getBoundingClientRect();
             const sb = sidebarRef.current.getBoundingClientRect();
             setSelectModalPosition({ top: btn.top, left: sb.right });
+            setCaseInput(caseId);
             try {
                 const data = await listCases();
                 setCasesList(data.cases || []);
@@ -133,9 +139,9 @@ export default function SideBar() {
                     reader.onerror = reject;
                     reader.readAsDataURL(file);
                 });
-                await captureImage(await dataUrl(file), caseId);
+                const result = await captureImage(await dataUrl(file), caseId);
+                console.log('Image captured and sent:', result);
             }
-            await loadImages();
         } catch (error) {
             console.error('Error uploading images:', error);
         } finally {
@@ -194,7 +200,7 @@ export default function SideBar() {
                                                 option: { className: 'case-combobox-option' },
                                             }}
                                             options={casesList}
-                                            value={caseInput}
+                                            // value={caseInput}
                                             onInputChange={(_, newInputValue) => setCaseInput(newInputValue)}
                                             onChange={(_, newValue) => setCaseInput(newValue ?? '')}
                                             renderInput={(params) => (
@@ -289,6 +295,17 @@ export default function SideBar() {
                             >
                             {isUploading === 'selecting'? 'Awaiting selection..' : isUploading === 'uploading' ? 'Uploading...' : 'Upload Images'}
                         </button>
+
+                        <button
+                            className="sidebar-button"
+                            onClick={() => setShowSettings(true)}
+                            >
+                                User Settings
+                        </button>
+                        <UserSettingsModal
+                            open={showSettings}
+                            onClose={() => setShowSettings(false)}
+                        />
                     </div>
                 </div>
             )}

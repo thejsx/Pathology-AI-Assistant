@@ -78,9 +78,9 @@ export async function createNewCase() {
 export async function uploadImages(caseId, files) {
     const form = new FormData();
     form.append('case_id', caseId);
-    files.forEach(f => form.append('files', f));   // 'files' matches backend field name
+    files.forEach(f => form.append('files', f));   
 
-    const response = await fetch(`/api/images/upload`, {  // adjust path as needed
+    const response = await fetch(`/api/images/upload`, {  
         method: 'POST',
         body: form,
         credentials: 'include'   // if you rely on cookies / auth
@@ -92,18 +92,23 @@ export async function uploadImages(caseId, files) {
     return response.json();      // { images: [...], count: n }
 }
 
-export async function processImages(caseId, selectedImages, prompt) {
+export async function processLlmQuery(  caseId,  selectedImages,  prompt,  effort,  options) {
+    const payload = {
+        case_id: caseId,
+        image_ids: selectedImages,
+        prompt: prompt,
+        effort: effort,
+        options: options
+    };
+    console.log('Processing LLM query with payload:', payload);
     const response = await fetch(`${API_BASE}/query-llm`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+        'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            case_id: caseId,
-            image_ids: selectedImages,
-            prompt: prompt
-        })
+        body: JSON.stringify(payload),  
     });
+
     return response.json();
 }
 
@@ -121,3 +126,57 @@ export async function cancelLLMQuery(caseId) {
     return response.json();
 }
 
+export async function getUserSettings(userId) {
+  const res = await fetch(`${API_BASE}/user-settings/${userId}`);
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return res.json();          // { settings: { … } }
+}
+
+export async function setUserSettings(userId, settings) {
+  const res = await fetch(`${API_BASE}/user-settings/${userId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return res.json();          // { status: 'saved' }
+}
+
+export async function getLlmHistory(caseId) {
+    const response = await fetch(`${API_BASE}/llm-history/${caseId}`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
+
+export async function clearLlmHistory(caseId, selectedHistory) {
+
+    const response = await fetch(`${API_BASE}/clear-llm-history`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ case_id: caseId, selected_history: selectedHistory }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
+
+export async function appendLlmHistory(historyEntry) {
+    const response = await fetch(`${API_BASE}/append-llm-history`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(historyEntry),
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}

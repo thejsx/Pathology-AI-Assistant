@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SideBar from './sideBar';
 import BottomBar from './BottomBar';
+import useGlobalStore from '../../GlobalStore';
 import '../styles/Viewer.css';
 
 
@@ -8,6 +9,16 @@ export default function ViewerLayout({ videoStream, videoControls }) {
     const [bottomBarHeight, setBottomBarHeight] = useState(250);
     const [isResizingBottomBar, setIsResizingBottomBar] = useState(false);
     const [mouseStartY, setMouseStartY] = useState(0);
+    const { fetchUserSettings } = useGlobalStore();
+
+    // Fetch user settings once on mount
+    useEffect(()=> {
+        console.log('Fetching user settings on mount');
+        fetchUserSettings().catch((error) => {
+            console.error('Error fetching user settings:', error);
+        });
+    }, []);
+
 
 
     const handleBottomBarResize = useCallback((e) => {

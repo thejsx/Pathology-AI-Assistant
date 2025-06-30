@@ -4,19 +4,21 @@ import { useContext } from 'react';
 import useGlobalStore from '../../GlobalStore';
 
 export default function VideoControls({ streamRef }) {
-    const [zoom, setZoom] = useState(1);
-    const [rotate, setRotate] = useState(0);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [flipX, setFlipX] = useState(false);
+
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const { caseId } = useGlobalStore();
+    const { 
+        caseId,
+        settings: { zoom, rotate, offsetX, offsetY, flipX },
+        updateSetting,
+        resetSettingsToDefault,
+     } = useGlobalStore();
 
     const applyTransform = () => {
         const targetElement = streamRef.current;
         if (!targetElement) return;
         
         targetElement.style.transform = `
-            translate(${offset.x}px, ${offset.y}px)
+            translate(${offsetX}px, ${offsetY}px)
             rotate(${rotate}deg)
             scaleX(${flipX ? -1 : 1})
             scale(${zoom})
@@ -25,7 +27,13 @@ export default function VideoControls({ streamRef }) {
 
     useEffect(() => {
         applyTransform();
-    }, [zoom, rotate, offset, flipX, streamRef]);
+    }, [zoom, rotate, offsetX, offsetY, flipX, streamRef]);
+
+    const nudge = (key, delta) => {
+        const currentValue = useGlobalStore.getState().settings[key];
+        const newValue = Math.round((currentValue + delta)*10) / 10; // round to 1 decimal place
+        updateSetting(key, newValue);
+    };
 
     const handleFullscreenChange = useCallback(() => {
         // Small delay to ensure fullscreen transition is complete
@@ -98,7 +106,7 @@ export default function VideoControls({ streamRef }) {
             ctx.save();
             // centre the frame
             ctx.translate(cssWidth / 2, cssHeight / 2);
-            ctx.translate(offset.x, offset.y);
+            ctx.translate(offsetX, offsetY);
             ctx.rotate(rotate * Math.PI / 180);
                    
             ctx.scale(flipX ? -zoom :  zoom, zoom);
@@ -114,7 +122,8 @@ export default function VideoControls({ streamRef }) {
             const result = await captureImage(dataURL, caseId);
             console.log('Image captured and sent:', result);
             
-            window.dispatchEvent(new Event('imageCaptured'));
+            const filename = result.image_path.split(/[/\\]/).pop();
+            window.dispatchEvent(new CustomEvent('imageCaptured', { detail: { filename } }));
             
         } catch (error) {
             console.error('Error capturing image:', error);
@@ -150,16 +159,18 @@ export default function VideoControls({ streamRef }) {
                         </button>
                     </div>
                     <button onClick={imageCapture}>Capture Image</button>
-                    <button onClick={() => {setZoom(1); setOffset({ x: 0, y: 0 }); setRotate(0); setFlipX(false);}}>RESET</button>
-                    <button onClick={() => setZoom(z => z * 1.1)}>Zoom +</button>
-                    <button onClick={() => setZoom(z => z / 1.1)}>Zoom –</button>
-                    <button onClick={() => setRotate(r => r + 10)}>Rotate +10°</button>
-                    <button onClick={() => setRotate(r => r - 10)}>Rotate -10°</button>
-                    <button onClick={() => setOffset({ x: offset.x + 10, y: offset.y })}>Right</button>
-                    <button onClick={() => setOffset({ x: offset.x - 10, y: offset.y })}>Left</button>
-                    <button onClick={() => setOffset({ x: offset.x, y: offset.y + 10 })}>Down</button>
-                    <button onClick={() => setOffset({ x: offset.x, y: offset.y - 10 })}>Up</button>
-                    <button onClick={() => setFlipX(f => !f)}>Invert X</button>
+                    <button onClick={resetSettingsToDefault}>Reset to Default</button>
+
+                    <button onClick={() => nudge('zoom', zoom * 0.1)}>Zoom +</button>
+                    <button onClick={() => nudge('zoom', zoom * -0.1)}>Zoom –</button>
+                    <button onClick={() => nudge('rotate', 10)}>Rotate +10°</button>
+                    <button onClick={() => nudge('rotate', -10)}>Rotate -10°</button>
+                    <button onClick={() => nudge('offsetX', 10)}>Right</button>
+                    <button onClick={() => nudge('offsetX', -10)}>Left</button>
+                    <button onClick={() => nudge('offsetY', 10)}>Down</button>
+                    <button onClick={() => nudge('offsetY', -10)}>Up</button>
+                    <button onClick={() => updateSetting('flipX', !flipX)}>Invert X</button>                     
+
                     <button onClick={handleFullScreen}>Fullscreen</button>
                 </div>
             )}

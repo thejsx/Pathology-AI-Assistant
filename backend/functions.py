@@ -3,7 +3,7 @@ from datetime import date
 
 def get_image_dict(payload):
     case_id = payload.case_id
-    base_dir = os.path.join("images", case_id)
+    base_dir = os.path.join("storage", "images", case_id)
     if not os.path.exists(base_dir):
         print(f"Directory {base_dir} does not exist, returning empty list, 0 count")
         return  [],  0 
@@ -15,13 +15,12 @@ def get_image_dict(payload):
         image_list.append({
             "filename": image,
             "url": url_path,
-            "path": os.path.join(base_dir, image)
         })
 
     return image_list, len(images)
 
 def find_latest_case():
-    base_dir = "images"
+    base_dir = os.path.join("storage", "images")
     case_dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
     if case_dirs:
         latest = max(case_dirs, key=lambda d: os.path.getmtime(os.path.join(base_dir, d)))
@@ -32,7 +31,7 @@ def find_latest_case():
 
 def create_new_case():
     today = date.today().isoformat()
-    base_dir = "images"
+    base_dir = os.path.join("storage", "images")
     case_dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d)) and d.startswith(today)]
     print(case_dirs)
     if case_dirs:
@@ -42,7 +41,7 @@ def create_new_case():
 
 def delete_imgs_reindex(payload):
     case_id = payload.case_id
-    basedir = os.path.join("images", case_id)
+    basedir = os.path.join("storage", "images", case_id)
     print(f"Deleting images: {payload.filenames} from case_id: {case_id}")
     for filename in payload.filenames:
         path = os.path.join(basedir,filename)
@@ -51,6 +50,7 @@ def delete_imgs_reindex(payload):
 
     # Renumber remaining images
     images = os.listdir(basedir)
+    print(f"Remaining images after deletion: {images}")
 
     #remove dir if empty
     if not images:
@@ -67,13 +67,13 @@ def delete_imgs_reindex(payload):
     images_sorted = sorted(images, key=extract_number)
     for index, fname in enumerate(images_sorted):
         new_name = f"Image {str(index+1).zfill(2)}.png"
-        old_path = os.path.join("images", case_id, fname)
-        new_path = os.path.join("images", case_id, new_name)
+        old_path = os.path.join("storage","images", case_id, fname)
+        new_path = os.path.join("storage","images", case_id, new_name)
         if fname != new_name:
             os.replace(old_path, new_path)
 
     # Return updated list
-    images = os.listdir(os.path.join("images", case_id))
+    images = os.listdir(basedir)
     image_list = []
     for image in sorted(images, key=extract_number):
         image_list.append({

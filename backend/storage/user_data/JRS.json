@@ -1,0 +1,13 @@
+{
+  "zoom": 2.3,
+  "rotate": -20,
+  "offsetX": 0,
+  "offsetY": 0,
+  "flipX": true,
+  "reasoningEffort": "low",
+  "maxTokens": 2000,
+  "defaultSystemPrompt": "Please give your opinion on prompt/images.",
+  "includeHistory": true,
+  "includeClinicalData": true,
+  "defaultPrompt": "Please provide a detailed analysis of the history and image(s)."
+}
