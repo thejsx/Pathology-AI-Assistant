@@ -4,12 +4,14 @@ import { getImages, deleteImages, listCases, createNewCase, captureImage } from 
 import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
 import UserSettingsModal from './UserSettingsModal';
+import CaptureImageButton from './CaptureImageButton';
 
 
 
-export default function SideBar() {
+export default function SideBar({ streamRef }) {
     const { caseId, setCaseId, selectedImages, setSelectedImages } = useGlobalStore();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const { settings: { sidebarCollapsed }, updateSetting } = useGlobalStore();
+    const isCollapsed = sidebarCollapsed;
     const [serverImages, setServerImages] = useState([]);
     const [imageCount, setImageCount] = useState(0);
     const [imagesModal, setImagesModal] = useState(false);
@@ -160,7 +162,7 @@ export default function SideBar() {
                             <span className="sidebar-user"><b>User: </b> JRS</span>
                             <button
                                 className="collapse-btn"
-                                onClick={() => setIsCollapsed(true)}
+                            onClick={() => updateSetting('sidebarCollapsed', true)}
                                 title="Collapse sidebar"
                             >
                                 ×
@@ -277,15 +279,7 @@ export default function SideBar() {
                                 </div>
                             </div>    
                         )}
-                        {/* hidden file input */}
-                        <input
-                            ref={uploadInputRef}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            style={{ display: 'none' }}
-                            onChange={handleFilesChosen}
-                        />
+
 
                         {/* visible upload button */}
                         <button
@@ -302,10 +296,22 @@ export default function SideBar() {
                             >
                                 User Settings
                         </button>
-                        <UserSettingsModal
-                            open={showSettings}
-                            onClose={() => setShowSettings(false)}
-                        />
+                        
+
+                        <div style={{ flex: 1 }} />
+                        <CaptureImageButton streamRef={streamRef} className="sidebar-button" />
+                            {/* hidden file input */}
+                            <input
+                                ref={uploadInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                style={{ display: 'none' }}
+                                onChange={handleFilesChosen}
+                            />
+
+
+
                     </div>
                 </div>
             )}
@@ -313,7 +319,7 @@ export default function SideBar() {
                 <div className="sidebar-collapsed">
                     <button 
                         className="expand-btn"
-                        onClick={() => setIsCollapsed(false)}
+                        onClick={() => updateSetting('sidebarCollapsed', false)}
                         title="Expand sidebar"
                     >
                         ☰
@@ -325,6 +331,10 @@ export default function SideBar() {
                     <img src={lightboxUrl} alt="" className="lightbox-image" />
                 </div>
             )}
+            <UserSettingsModal
+                open={showSettings}
+                onClose={() => setShowSettings(false)}
+                        />
         </>
     );
 }

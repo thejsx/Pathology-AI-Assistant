@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { captureImage } from '../communications/mainServerAPI';
+import React, { useEffect, useCallback } from 'react';
 import { useContext } from 'react';
+import CaptureImageButton from './CaptureImageButton';
 import useGlobalStore from '../../GlobalStore';
 
 export default function VideoControls({ streamRef }) {
 
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const { 
+    const {
         caseId,
-        settings: { zoom, rotate, offsetX, offsetY, flipX },
+        settings: { zoom, rotate, offsetX, offsetY, flipX, videoControlsCollapsed },
         updateSetting,
         resetSettingsToDefault,
-     } = useGlobalStore();
+    } = useGlobalStore();
+    const isCollapsed = videoControlsCollapsed;
 
     const applyTransform = () => {
         const targetElement = streamRef.current;
@@ -75,68 +75,14 @@ export default function VideoControls({ streamRef }) {
     };
 
 
-    const imageCapture = async () => {
-        const videoElement = streamRef.current;
-        if (!videoElement) return;
-
-    
-        try {
-            // Create canvas to capture video frame
-            const imgCanvas = document.createElement('canvas');
-            const ctx = imgCanvas.getContext('2d');
-
-            const cssWidth = videoElement.clientWidth;
-            const cssHeight = videoElement.clientHeight;
-
-            const dpr  = window.devicePixelRatio || 1;
-            
-            imgCanvas.width  = cssWidth  * dpr;
-            imgCanvas.height = cssHeight * dpr;
-            ctx.scale(dpr, dpr);            // map back to CSS pixels
-            
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, cssWidth, cssHeight);
-            
-            // object-fit: contain   ➜   same algo the browser uses
-            const scale = Math.min(cssWidth / videoElement.videoWidth,
-                cssHeight / videoElement.videoHeight);
-            const drawW = videoElement.videoWidth  * scale;
-            const drawH = videoElement.videoHeight * scale;
-            
-            ctx.save();
-            // centre the frame
-            ctx.translate(cssWidth / 2, cssHeight / 2);
-            ctx.translate(offsetX, offsetY);
-            ctx.rotate(rotate * Math.PI / 180);
-                   
-            ctx.scale(flipX ? -zoom :  zoom, zoom);
-            
-            ctx.drawImage(videoElement, -drawW / 2, -drawH / 2, drawW, drawH);
-            ctx.restore();
-    
-
-            // Convert final canvas to base64
-            const dataURL = imgCanvas.toDataURL('image/png');
-
-            // Send to main server
-            const result = await captureImage(dataURL, caseId);
-            console.log('Image captured and sent:', result);
-            
-            const filename = result.image_path.split(/[/\\]/).pop();
-            window.dispatchEvent(new CustomEvent('imageCaptured', { detail: { filename } }));
-            
-        } catch (error) {
-            console.error('Error capturing image:', error);
-        }
-    };
 
     return (
         <>
             {/* Collapsed state - show expand button */}
-            {isCollapsed && (
+                    {isCollapsed && (
                 <div className="stream-controls-expand">
                     <button 
-                        onClick={() => setIsCollapsed(false)}
+                        onClick={() => updateSetting('videoControlsCollapsed', false)}
                         title="Show controls"
                         className="expand-btn"
                     >
@@ -146,19 +92,19 @@ export default function VideoControls({ streamRef }) {
             )}
 
             {/* Expanded state - show all controls */}
-            {!isCollapsed && (
+                    {!isCollapsed && (
                 <div className="stream-controls">
                     <div className="controls-header">
                         <span className="controls-title">Controls</span>
                         <button 
-                            onClick={() => setIsCollapsed(true)}
+                            onClick={() => updateSetting('videoControlsCollapsed', true)}
                             className="collapse-btn"
                             title="Hide controls"
                         >
                             ×
                         </button>
                     </div>
-                    <button onClick={imageCapture}>Capture Image</button>
+                    <CaptureImageButton streamRef={streamRef} />
                     <button onClick={resetSettingsToDefault}>Reset to Default</button>
 
                     <button onClick={() => nudge('zoom', zoom * 0.1)}>Zoom +</button>

@@ -13,6 +13,13 @@ export const defaultSettings = {
   defaultPrompt: "",
   includeHistory: false,
   includeClinicalData: false,
+  // UI preferences
+  sidebarCollapsed: false,
+  videoControlsCollapsed: false,
+  bottomBarHeight: 250,
+  bottomBarClinDataWidth: '30vw',
+  bottomBarInputTextWidth: '35vw',
+  bottomBarLlmResponseWidth: '35vw',
 }
 
 

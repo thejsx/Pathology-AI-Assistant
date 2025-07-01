@@ -5,15 +5,16 @@ import useGlobalStore from '../../GlobalStore';
 import HistoryModal from './HistoryModal';
 
 export default function BottomBarContent({bottomBarHeight}) {
-    const { settings, selectedImages, caseId, llmHistory, fetchHistory } = useGlobalStore();
+    const { settings, updateSetting, selectedImages, caseId, llmHistory, fetchHistory } = useGlobalStore();
+    const clinDataWidth = settings.bottomBarClinDataWidth || '30vw';
+    const inputTextWidth = settings.bottomBarInputTextWidth || '35vw'; 
+    const llmResponseWidth = settings.bottomBarLlmResponseWidth || '35vw';
     const [clinicalData, setClinicalData] = useState(settings.clinicalData || 'No clinical data available.');
     const [textValue, setTextValue] = useState(settings.defaultPrompt || '');
     const [llmResponse, setLlmResponse] = useState('No query currently made.');
     const [useImagesChecked, setUseImagesChecked] = useState(selectedImages.length > 0);
     const [showHistory, setShowHistory] = useState(false);
-    const [clinDataWidth, setClinDataWidth] = useState('30vw'); 
-    const [inputTextWidth, setInputTextWidth] = useState('35vw');
-    const [llmResponseWidth, setLlmResponseWidth] = useState('35vw');
+
     const [isResizingX, setIsResizingX] = useState(false);
     const [mouseStartX, setMouseStartX] = useState(0);
     const [yResizerPosition, setYResizerPosition] = useState();
@@ -44,16 +45,16 @@ export default function BottomBarContent({bottomBarHeight}) {
 
                     const newClinDataWidth = Math.max(0, cDW + mouseDeltaX) + 'px';
                     const newInputTextWidth = window.innerWidth - parseInt(newClinDataWidth) - llmRW + 'px';
-                    setClinDataWidth(newClinDataWidth);
-                    setInputTextWidth(newInputTextWidth);
+                    updateSetting('bottomBarClinDataWidth', newClinDataWidth);
+                    updateSetting('bottomBarInputTextWidth', newInputTextWidth);
 
                 } else if (yResizerPosition === 'right') {
                     // Resizing right side
                     const newInputTextWidth = Math.max(0, iTW + mouseDeltaX) + 'px';
                     const newLlmResponseWidth =  window.innerWidth - cDW - parseInt(newInputTextWidth) + 'px';
 
-                    setInputTextWidth(newInputTextWidth);  
-                    setLlmResponseWidth(newLlmResponseWidth);
+                    updateSetting('bottomBarInputTextWidth', newInputTextWidth);
+                    updateSetting('bottomBarLlmResponseWidth', newLlmResponseWidth);
 
                 }
             }

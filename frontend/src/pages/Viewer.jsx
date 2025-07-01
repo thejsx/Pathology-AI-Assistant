@@ -74,6 +74,7 @@ export default function Viewer() {
         <ViewerLayout
             videoStream={videoStream}
             videoControls={<VideoControls streamRef={videoRef} />}
+            streamRef={videoRef}
             // sidebarContent={sidebarContent}
             // bottomBarContent={bottomBarContent}
         />

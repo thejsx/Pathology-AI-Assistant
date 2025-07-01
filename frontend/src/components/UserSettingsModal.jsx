@@ -24,57 +24,6 @@ export default function UserSettingsModal({ open, onClose }) {
       >
         <h3>User Settings</h3>
 
-        {/* ---------------- Video controls ---------------- */}
-        <fieldset>
-          <legend>Video Transform</legend>
-          <label>
-            Zoom&nbsp;
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={settings.zoom}
-              onChange={handleNumber('zoom')}
-            />
-          </label>
-          <label>
-            Rotate&nbsp;
-            <input
-              type="number"
-              step="1"
-              value={settings.rotate}
-              onChange={handleNumber('rotate')}
-            />
-            °{/* degrees */}
-          </label>
-          <label>
-            Offset X&nbsp;
-            <input
-              type="number"
-              step="1"
-              value={settings.offsetX}
-              onChange={handleNumber('offsetX')}
-            />
-          </label>
-          <label>
-            Offset Y&nbsp;
-            <input
-              type="number"
-              step="1"
-              value={settings.offsetY}
-              onChange={handleNumber('offsetY')}
-            />
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={settings.flipX}
-              onChange={(e) => updateSetting('flipX', e.target.checked)}
-            />
-            Flip X
-          </label>
-        </fieldset>
-
         {/* ---------------- LLM params ---------------- */}
         <fieldset>
             <legend>LLM Settings</legend>
@@ -129,6 +78,99 @@ export default function UserSettingsModal({ open, onClose }) {
 
         </fieldset>
 
+        {/* ---------------- Video controls ---------------- */}
+        <fieldset>
+          <legend>Video Transform</legend>
+          <label>
+            Zoom&nbsp;
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              value={settings.zoom}
+              onChange={handleNumber('zoom')}
+            />
+          </label>
+          <label>
+            Rotate&nbsp;
+            <input
+              type="number"
+              step="1"
+              value={settings.rotate}
+              onChange={handleNumber('rotate')}
+            />
+            °{/* degrees */}
+          </label>
+          <label>
+            Offset X&nbsp;
+            <input
+              type="number"
+              step="1"
+              value={settings.offsetX}
+              onChange={handleNumber('offsetX')}
+            />
+          </label>
+          <label>
+            Offset Y&nbsp;
+            <input
+              type="number"
+              step="1"
+              value={settings.offsetY}
+              onChange={handleNumber('offsetY')}
+            />
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={settings.flipX}
+              onChange={(e) => updateSetting('flipX', e.target.checked)}
+            />
+            Flip X
+          </label>
+        </fieldset>
+
+        
+
+        {/* ---------------- User Interface ---------------- */}
+        <fieldset>
+          <legend>User Interface</legend>
+          <label>
+            Sidebar collapsed&nbsp;
+            <input
+              type="checkbox"
+              checked={settings.sidebarCollapsed}
+              onChange={(e) => updateSetting('sidebarCollapsed', e.target.checked)}
+            />
+          </label>
+          <label>
+            Video controls collapsed&nbsp;
+            <input
+              type="checkbox"
+              checked={settings.videoControlsCollapsed}
+              onChange={(e) => updateSetting('videoControlsCollapsed', e.target.checked)}
+            />
+          </label>
+          <label>
+            Bottom bar height (px)&nbsp;
+            <input
+              type="number"
+              value={settings.bottomBarHeight}
+              onChange={(e) => updateSetting('bottomBarHeight', parseFloat(e.target.value))}
+            />
+          </label>
+          <label>
+            Clinical Data Width: &nbsp;
+            <span className="readonly-value">{settings.bottomBarClinDataWidth}</span>
+          </label>
+          <label>
+            Input Text Width: &nbsp;
+            <span className="readonly-value">{settings.bottomBarInputTextWidth}</span>
+          </label>
+          <label>
+            LLM Response Width: &nbsp;
+            <span className="readonly-value">{settings.bottomBarLlmResponseWidth}</span>
+          </label>
+        </fieldset>
         {/* ---------------- actions ---------------- */}
         <div className="settings-actions">
           <button onClick={resetSettingsToDefault}>Reset Default</button>

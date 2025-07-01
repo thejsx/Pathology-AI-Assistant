@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import SideBar from './sideBar';
+import SideBar from './SideBar';
 import BottomBar from './BottomBar';
 import useGlobalStore from '../../GlobalStore';
 import '../styles/Viewer.css';
 
 
-export default function ViewerLayout({ videoStream, videoControls }) {
-    const [bottomBarHeight, setBottomBarHeight] = useState(250);
+export default function ViewerLayout({ videoStream, videoControls, streamRef }) {
     const [isResizingBottomBar, setIsResizingBottomBar] = useState(false);
     const [mouseStartY, setMouseStartY] = useState(0);
-    const { fetchUserSettings } = useGlobalStore();
+    const { settings, updateSetting, fetchUserSettings } = useGlobalStore();
+    const bottomBarHeight = settings.bottomBarHeight || 250; // Default height if not set
 
     // Fetch user settings once on mount
     useEffect(()=> {
@@ -19,16 +19,14 @@ export default function ViewerLayout({ videoStream, videoControls }) {
         });
     }, []);
 
-
-
     const handleBottomBarResize = useCallback((e) => {
         if (isResizingBottomBar) {
             // Set new height based on mouse position from the top of the viewport
             const mouseDeltaY = e.clientY - mouseStartY;
             const newHeight = Math.min(Math.max(bottomBarHeight - mouseDeltaY, 0), window.innerHeight * 0.8); // Limit height to a maximum of 80% of the viewport height
-            setBottomBarHeight(newHeight);
+            updateSetting('bottomBarHeight', newHeight);
         }
-    }, [isResizingBottomBar]);
+    }, [isResizingBottomBar, updateSetting]);
 
     const startResizing = useCallback((event) => {
         event.preventDefault();
@@ -57,7 +55,7 @@ export default function ViewerLayout({ videoStream, videoControls }) {
     return (
         <div className="viewer-container">
             <div className="sidebar-main-container">
-                <SideBar/>
+                <SideBar streamRef={streamRef}/>
 
                 <div className="main-content">
                     <div className="stream-container">
