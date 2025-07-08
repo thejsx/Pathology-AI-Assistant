@@ -2,17 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import '../styles/BottomBar.css';
 import {processLlmQuery, cancelLLMQuery, appendLlmHistory} from '../communications/mainServerAPI.js' 
 import useGlobalStore from '../../GlobalStore';
+import ClinicalDataModal from './ClinicalDataModal.jsx';
 import HistoryModal from './HistoryModal';
 
 export default function BottomBarContent({bottomBarHeight}) {
-    const { settings, updateSetting, selectedImages, caseId, llmHistory, fetchHistory } = useGlobalStore();
+    const { settings, clinSettings, updateSetting, selectedImages, caseId, includeUserLLM, fetchHistory, setClinSummary } = useGlobalStore();
     const clinDataWidth = settings.bottomBarClinDataWidth || '30vw';
     const inputTextWidth = settings.bottomBarInputTextWidth || '35vw'; 
     const llmResponseWidth = settings.bottomBarLlmResponseWidth || '35vw';
-    const [clinicalData, setClinicalData] = useState(settings.clinicalData || 'No clinical data available.');
+
     const [textValue, setTextValue] = useState(settings.defaultPrompt || '');
     const [llmResponse, setLlmResponse] = useState('No query currently made.');
     const [useImagesChecked, setUseImagesChecked] = useState(selectedImages.length > 0);
+
+    const [showClinicalData, setShowClinicalData] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
 
     const [isResizingX, setIsResizingX] = useState(false);
@@ -89,33 +92,22 @@ export default function BottomBarContent({bottomBarHeight}) {
         }
         setLlmResponse('Processing images and/or query...');
 
-        const options = {
-            ...(settings.maxTokens && { max_tokens: settings.maxTokens }),
-            ...(settings.includeClinicalData && clinicalData && { clinical_data: clinicalData }),
-            ...(settings.includeHistory && llmHistory && { llm_history: llmHistory }),
-        }
-
         const currentPrompt = textValue.trim();
-        const currentCaseId = caseId
-        const currentImageCount = selectedImages.length;
+        const currentCaseId = caseId;
 
         const response = await processLlmQuery(
             currentCaseId,
             selectedImages,
             currentPrompt,
             settings.reasoningEffort,
-            options
+            settings.maxTokens? settings.maxTokens : 0,
+            settings.includeClinicalData,
+            settings.includeHistory,
+            includeUserLLM
         );
         console.log('LLM Response:', response['response']);
-
+        appendLlmHistory(currentCaseId, currentPrompt, response['response'], selectedImages.length)
         setLlmResponse(response['response']);
-        const llmHistEntry = {
-            case_id: currentCaseId,
-            prompt: currentPrompt,
-            image_count: currentImageCount,
-            response: response['response'],
-        };
-        appendLlmHistory(llmHistEntry);
         await fetchHistory();  // Refresh history after appending
     }
 
@@ -140,12 +132,17 @@ export default function BottomBarContent({bottomBarHeight}) {
                 <div className="output-response-area">
                     
                     <textarea
-                        value={clinicalData}
+                        value={clinSettings.summary}
                         onChange={(e) => {
-                            setClinicalData(e.target.value);
+                            setClinSummary(e.target.value);
                         }}
                         className='clinical-data-text-area' />
                 </div>
+                <div className="clinical-data-button-container">
+                    <button onClick={() => { setClinSummary('');}}>Clear</button>
+                    <button onClick={() => setShowClinicalData(true)}> Show Data</button>
+                </div>
+                
             </div>
 
             <div 
@@ -258,6 +255,7 @@ export default function BottomBarContent({bottomBarHeight}) {
 
 
             </div>
+            <ClinicalDataModal open={showClinicalData} onClose={() => setShowClinicalData(false)} />
             <HistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
 
         </div>

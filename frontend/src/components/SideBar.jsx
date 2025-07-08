@@ -1,16 +1,23 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import '../styles/SideBar.css';
 import { getImages, deleteImages, listCases, createNewCase, captureImage } from '../communications/mainServerAPI';
 import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
 import UserSettingsModal from './UserSettingsModal';
 import CaptureImageButton from './CaptureImageButton';
+import useDraggable from '../hooks/useDraggable';
 
 
 
 export default function SideBar({ streamRef }) {
-    const { caseId, setCaseId, selectedImages, setSelectedImages } = useGlobalStore();
-    const { settings: { sidebarCollapsed }, updateSetting } = useGlobalStore();
+    const {
+        caseId,
+        setCaseId,
+        selectedImages,
+        setSelectedImages,
+        settings: { sidebarCollapsed },
+        updateSetting,
+    } = useGlobalStore();
     const isCollapsed = sidebarCollapsed;
     const [serverImages, setServerImages] = useState([]);
     const [imageCount, setImageCount] = useState(0);
@@ -20,6 +27,9 @@ export default function SideBar({ streamRef }) {
     const selectButtonRef = useRef(null);
     const sidebarRef = useRef(null);
     const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
+    const imageModalRef = useRef(null);
+    const [modalKey, setModalKey] = useState(0);
+    const imagePos = useDraggable(imageModalRef, { x: modalPosition.left + 5, y: modalPosition.top }, modalKey);
     const [selectModalPosition, setSelectModalPosition] = useState({ top: 0, left: 0 });
     const [selectCaseModal, setSelectCaseModal] = useState(false);
     const [casesList, setCasesList] = useState([]);
@@ -68,14 +78,10 @@ export default function SideBar({ streamRef }) {
 
     const handleDeleteSelected = async () => {
         try {
-            console.log('Deleting images:', selectedImages);
-            await deleteImages(selectedImages, caseId);
-            setServerImages(prev => prev.filter(img => !selectedImages.includes(img.filename)));
-            setImageCount(prev => prev - selectedImages.length);
-            setSelectedImages([]);           
-            // Rename serverImages to start at 1
-            setServerImages(prev => prev.map((img, index) => ({ ...img, filename: `Image ${`${index + 1}`.toString().padStart(2,0)}.png` })));
-
+            const { images: updated, count } = await deleteImages(selectedImages, caseId);
+            setServerImages(updated);
+            setImageCount(count);
+            setSelectedImages([]);
         } catch (error) {
             console.error('Error deleting images:', error);
         }
@@ -85,9 +91,7 @@ export default function SideBar({ streamRef }) {
         if (imagesModal) {
             setImagesModal(false);
         } else if (imagesButtonRef.current && sidebarRef.current) {
-            const btn = imagesButtonRef.current.getBoundingClientRect();
-            const sb = sidebarRef.current.getBoundingClientRect();
-            setModalPosition({ top: btn.top, left: sb.right });
+            setModalKey(prev => prev + 1);
             setImagesModal(true);
         }
     };
@@ -122,6 +126,8 @@ export default function SideBar({ streamRef }) {
         setCaseInput('');
     };
 
+
+
     const handleUploadClick = () => {
         uploadInputRef.current?.click();
     };
@@ -148,7 +154,9 @@ export default function SideBar({ streamRef }) {
             console.error('Error uploading images:', error);
         } finally {
             setIsUploading(false);
-            event.current.value = ''; // Reset the input value
+            // event.current.value = ''; // Reset the input value
+            uploadInputRef.current.value = ''; // Reset the input value
+            loadImages(); // Reload images after upload
         }
     };
 
@@ -229,8 +237,13 @@ export default function SideBar({ streamRef }) {
                         </button>
                         {imagesModal && (
                             <div className="images-modal-overlay" onClick={() => setImagesModal(false)}>
-                                <div className='images-modal-container' style={{ position: 'fixed', top: modalPosition.top, left: modalPosition.left + 5 }}>
-                                    <div className="images-modal-actions"  style={{ display: serverImages.length > 0 ? 'flex' : 'none' }}  onClick={e => e.stopPropagation()}>
+                                <div
+                                    className='images-modal-container'
+                                    ref={imageModalRef}
+                                    style={{ position: 'fixed', top: imagePos.y, left: imagePos.x }}
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <div className="images-modal-actions" style={{ display: serverImages.length > 0 ? 'flex' : 'none' }} onClick={e => e.stopPropagation()}>
                                             <button onClick={handleSelectAll} disabled={selectedImages.length === serverImages.length}>
                                                 Select All
                                             </button>
@@ -246,32 +259,32 @@ export default function SideBar({ streamRef }) {
                                         {!serverImages.length? (
                                             <p>No images available</p>
                                             ) : (
-                                            serverImages.map(image => {
-                                                const url = `http://${location.hostname}:10000${image.url}`;
-                                                const isChecked = selectedImages.includes(image.filename);
-                                                return (
-                                                    <div key={image.filename.split(".")[0]} className="image-item">
-                                                        <label>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                            onChange={() => {
-                                                                if (isChecked) {
-                                                                    setSelectedImages(selectedImages.filter(img => img !== image.filename));
-                                                                } else {
-                                                                    setSelectedImages([...selectedImages, image.filename]);
-                                                                }
-                                                            }}
-                                                            />
-                                                            {image.filename.split(".")[0]}
-                                                        </label>
-                                                        <img
-                                                            src={url}
-                                                            alt={image.filename}
-                                                            className="thumbnail"
-                                                            onClick={() => setLightboxUrl(url)}
+                                        serverImages.map((image, index) => {
+                                            const url = `http://${location.hostname}:10000${image.url}`;
+                                            const isChecked = selectedImages.includes(image.filename);
+                                            return (
+                                                <div key={image.filename} className="image-item">
+                                                    <label>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                        onChange={() => {
+                                                            if (isChecked) {
+                                                                setSelectedImages(selectedImages.filter(img => img !== image.filename));
+                                                            } else {
+                                                                setSelectedImages([...selectedImages, image.filename]);
+                                                            }
+                                                        }}
                                                         />
-                                                    </div>
+                                                        {`Image ${index + 1}`}
+                                                    </label>
+                                                    <img
+                                                        src={url}
+                                                        alt={`Image ${index + 1}`}
+                                                        className="thumbnail"
+                                                        onClick={() => setLightboxUrl(url)}
+                                                    />
+                                                </div>
                                             );
                                         }))}
 

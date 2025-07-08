@@ -4,7 +4,7 @@
     height: 100vh;
     background-color: #1a1a1a;
     color: white;
-    overflow: auto; /* Prevent scrollbars during resize */
+    overflow: hidden; /* Prevent scrollbars during resize */
 }
 
 .sidebar-main-container {
@@ -58,7 +58,7 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    min-width: 100px;
+    width: 110px;
     box-shadow: 0 2px 10px rgba(68, 68, 68, 0.5);
     /* backdrop-filter: blur(10px); */
 }
@@ -132,7 +132,7 @@
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .stream-controls button:hover {

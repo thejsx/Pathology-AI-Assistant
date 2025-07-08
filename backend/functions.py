@@ -1,85 +1,128 @@
 import os
 from datetime import date
+from sqlalchemy import select, func, delete
+from db.models import Image, Case, LLMHistory, ClinicalData, ClinicalDoc
+import base64
+from uuid import uuid4
 
-def get_image_dict(payload):
-    case_id = payload.case_id
-    base_dir = os.path.join("storage", "images", case_id)
-    if not os.path.exists(base_dir):
-        print(f"Directory {base_dir} does not exist, returning empty list, 0 count")
-        return  [],  0 
+async def count_images(case_id: str, session):
+    stmt = (
+        select(func.count(Image.id))
+        .join(Case, Image.case_id == Case.id)
+        .where(Case.case_id == case_id)
+    )
+    result = await session.scalar(stmt)
+    return result or 0
 
-    images = os.listdir(base_dir)
-    image_list = []
-    for image in images:
-        url_path = f"/images/{case_id}/{image}"
-        image_list.append({
-            "filename": image,
-            "url": url_path,
-        })
+async def check_create_case(case_id, user_id, session):
 
-    return image_list, len(images)
+    stmt = select(Case).where(Case.case_id == case_id)
+    case = (await session.execute(stmt)).scalar_one_or_none()
+    if case is None:
+        case = Case(case_id=case_id, user_id=user_id)
+        session.add(case)
+        await session.commit()
+        await session.refresh(case)
+    return case
 
-def find_latest_case():
-    base_dir = os.path.join("storage", "images")
-    case_dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
-    if case_dirs:
-        latest = max(case_dirs, key=lambda d: os.path.getmtime(os.path.join(base_dir, d)))
-        return latest
-    else:
-        today = date.today().isoformat()
-        return f"{today}--01"
+async def image_capture(payload, session):
 
-def create_new_case():
+    image_data = payload.image.split(",")[1]
+    image_data = base64.b64decode(image_data)
+    case_dir = os.path.join("storage","images", payload.case_id)
+    os.makedirs(case_dir, exist_ok=True)
+
+    # Save the image with a unique name
+    image_path = os.path.join(case_dir, f"{uuid4().hex}.png")
+    with open(image_path, "wb") as image_file:
+        image_file.write(image_data)
+  
+    image = Image(
+        filename=os.path.basename(image_path), 
+        case_id=payload.case_id, 
+        user_id=payload.user_id, 
+        rel_path=f"/images/{payload.case_id}/{os.path.basename(image_path)}"
+    )
+
+    session.add(image)
+    await session.commit()
+
+    return image_path
+
+async def find_latest_case(session):
+    # Find the latest case directory based on modification time
+    stmt = select(Case).order_by(Case.updated.desc()).limit(1)
+    result = await session.execute(stmt)
+    latest_case = result.scalar_one_or_none()
+    return latest_case.case_id if latest_case else f"{date.today().isoformat()}--01"
+
+async def create_new_case_number(session):
+    # Create a new case ID based on today's date and the highest index of existing cases
     today = date.today().isoformat()
-    base_dir = os.path.join("storage", "images")
-    case_dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d)) and d.startswith(today)]
+    stmt = select(Case).where(Case.case_id.like(f"{today}--%"))
+    result = await session.execute(stmt)
+    case_dirs = result.scalars().all()
     print(case_dirs)
     if case_dirs:
         highest_index = max(int(d.split('--')[-1]) for d in case_dirs)
         return f"{today}--{str(highest_index + 1).zfill(2)}"
     return f"{today}--01"
 
-def delete_imgs_reindex(payload):
-    case_id = payload.case_id
-    basedir = os.path.join("storage", "images", case_id)
-    print(f"Deleting images: {payload.filenames} from case_id: {case_id}")
+async def delete_images(payload, session):
+    # Delete images in the database
+    stmt = (select(Image).where(Image.case_id == payload.case_id, Image.filename.in_(payload.filenames)))
+    images_to_delete = (await session.scalars(stmt)).all()
+    for image in images_to_delete:
+        await session.delete(image)
+
+    stmt_remaining = (select(Image).where(Image.case_id == payload.case_id).order_by(Image.uploaded))
+    remaining_images = (await session.scalars(stmt_remaining)).all()
+    await session.commit()
+
     for filename in payload.filenames:
-        path = os.path.join(basedir,filename)
-        if os.path.exists(path):
-            os.remove(path)
-
-    # Renumber remaining images
-    images = os.listdir(basedir)
-    print(f"Remaining images after deletion: {images}")
-
-    #remove dir if empty
-    if not images:
-        os.rmdir(basedir)
-        return [], 0
-    
-    def extract_number(fname):
         try:
-            name, _ = os.path.splitext(fname)
-            return int(name.split(" ")[1])
-        except:
-            return float("inf")
+            os.remove(os.path.join("storage", "images", payload.case_id, filename))
+        except FileNotFoundError:
+            print(f"File {filename} not found for deletion.")
+    return [{"filename": img.filename, "url": img.rel_path} for img in remaining_images], len(remaining_images)
 
-    images_sorted = sorted(images, key=extract_number)
-    for index, fname in enumerate(images_sorted):
-        new_name = f"Image {str(index+1).zfill(2)}.png"
-        old_path = os.path.join("storage","images", case_id, fname)
-        new_path = os.path.join("storage","images", case_id, new_name)
-        if fname != new_name:
-            os.replace(old_path, new_path)
+async def load_history(case_id, user_id, include_user, session):
+    stmt = select(LLMHistory).where(LLMHistory.case_id == case_id).order_by(LLMHistory.start_ts)
+    if include_user:
+        stmt = stmt.where(LLMHistory.case_id == case_id, LLMHistory.user_id == user_id).order_by(LLMHistory.start_ts)
+    history = (await session.scalars(stmt)).all()
+    print(f"Loaded {len(history)} history entries for case {case_id} and user {user_id}")
+    return history 
+ 
+async def clear_selected_history(case_id, user_id, selected_indices, session, summary=None):
+    if not selected_indices:
+        return
 
-    # Return updated list
-    images = os.listdir(basedir)
-    image_list = []
-    for image in sorted(images, key=extract_number):
-        image_list.append({
-            "filename": image,
-            "url": f"/images/{case_id}/{image}",
-            "path": os.path.join("images", case_id, image)
-        })
-    return image_list, len(images)
+    data = await load_history(case_id, None, False, session)
+    if not data:
+        return
+
+    entries_to_delete = [data[i] for i in selected_indices if i < len(data)]
+    
+    if summary and entries_to_delete:
+        # Create summary entry
+        summ_entry = LLMHistory(
+            case_id=case_id,
+            user_id=user_id,
+            prompt="Summary of LLM history",
+            image_count=sum(entry.image_count for entry in entries_to_delete),
+            response=summary,
+            start_ts=min(entry.start_ts for entry in entries_to_delete if entry.start_ts),
+            end_ts=max(entry.end_ts for entry in entries_to_delete if entry.end_ts),
+        )
+        session.add(summ_entry)
+    
+    # Delete selected entries
+    if entries_to_delete:
+        ids_to_delete = [entry.id for entry in entries_to_delete]
+        await session.execute(
+            delete(LLMHistory).where(LLMHistory.id.in_(ids_to_delete))
+        )
+    
+    await session.commit()
 

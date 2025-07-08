@@ -18,12 +18,7 @@ export default function HistoryModal({ open, onClose }) {
     if (open) {
         console.log("Fetching LLM history...");
         fetchHistory().catch(console.error);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      selectNoneHistory();  // reset selection when closing
+        console.log("LLM history:", llmHistory);
     }
   }, [open]);
 
@@ -50,9 +45,9 @@ export default function HistoryModal({ open, onClose }) {
                 />
                 <span className="hist-ts">
                   {
-                    Array.isArray(item.timestamp) ?
-                    item.timestamp.map(ts => new Date(ts).toLocaleString()).join(' -') :
-                    new Date(item.timestamp).toLocaleString()
+                    (new Date(item.end_ts) - new Date(item.start_ts)) > 10 * 1000 ?
+                    new Date(item.start_ts).toLocaleString() + ' - ' + new Date(item.end_ts).toLocaleString() :
+                    new Date(item.start_ts).toLocaleString()
                     }
                 </span>
               </label>

@@ -1,3 +1,7 @@
 fastapi
 uvicorn[standard]
 pydantic
+sqlalchemy>=2.0
+asyncpg              # async PostgreSQL driver
+alembic              # migrations
+psycopg2-binary

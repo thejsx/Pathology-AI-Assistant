@@ -1,182 +1,75 @@
 const API_BASE = `http://${location.hostname}:10000`;
+import useGlobalStore from '../../GlobalStore';
 
-export async function captureImage(imageData, caseId) {
-    console.log(location.protocol, location.hostname);
-    const response = await fetch(`${API_BASE}/capture-image`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            image: imageData,
-            case_id: caseId
-        })
-    });
-    return response.json();
-}
-
-export async function deleteImages(filenames, caseId) {
-    console.log('Deleting images:', filenames, 'from case:', caseId);
-    const response = await fetch(`${API_BASE}/delete-images`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filenames: filenames, case_id: caseId }),
-    });
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
-
-export async function getImages(caseId) {
-    const response = await fetch(`${API_BASE}/get-images`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            case_id: caseId
-        })
-    });
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Received image data:', data); // Debug log
-    return data;
-}
-
-export async function getLatestCase() {
-    const response = await fetch(`${API_BASE}/get-latest-case`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
-
-export async function listCases() {
-    const response = await fetch(`${API_BASE}/list-cases`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
-
-export async function createNewCase() {
-    const response = await fetch(`${API_BASE}/create-new-case`, {
-        method: 'GET',
-    });
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
-
-export async function uploadImages(caseId, files) {
-    const form = new FormData();
-    form.append('case_id', caseId);
-    files.forEach(f => form.append('files', f));   
-
-    const response = await fetch(`/api/images/upload`, {  
-        method: 'POST',
-        body: form,
-        credentials: 'include'   // if you rely on cookies / auth
-    });
-
-    if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-    }
-    return response.json();      // { images: [...], count: n }
-}
-
-export async function processLlmQuery(  caseId,  selectedImages,  prompt,  effort,  options) {
-    const payload = {
-        case_id: caseId,
-        image_ids: selectedImages,
-        prompt: prompt,
-        effort: effort,
-        options: options
-    };
-    console.log('Processing LLM query with payload:', payload);
-    const response = await fetch(`${API_BASE}/query-llm`, {
-        method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),  
-    });
-
-    return response.json();
-}
-
-export async function cancelLLMQuery(caseId) {
-    const response = await fetch(`${API_BASE}/cancel-llm-query`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ case_id: caseId }),
-    });
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
-
-export async function getUserSettings(userId) {
-  const res = await fetch(`${API_BASE}/user-settings/${userId}`);
-  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-  return res.json();          // { settings: { … } }
-}
-
-export async function setUserSettings(userId, settings) {
-  const res = await fetch(`${API_BASE}/user-settings/${userId}`, {
+/* ----------  helpers ---------- */
+async function apiPost(path, body = {}, includeUser = false) {
+  if (includeUser) {
+    const { user } = useGlobalStore.getState();
+    body = { ...body, user_id: user };
+  }
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
+    body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-  return res.json();          // { status: 'saved' }
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
-export async function getLlmHistory(caseId) {
-    const response = await fetch(`${API_BASE}/llm-history/${caseId}`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
-export async function clearLlmHistory(caseId, selectedHistory) {
+/* ---------- image endpoints ---------- */
+export const captureImage = (image, caseId, includeUser = true) =>
+    apiPost('/capture-image', { image, case_id: caseId }, includeUser);
 
-    const response = await fetch(`${API_BASE}/clear-llm-history`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ case_id: caseId, selected_history: selectedHistory }),
-    });
+export const deleteImages = (filenames, caseId, includeUser = false) =>
+  apiPost('/delete-images', { filenames, case_id: caseId }, includeUser);
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
+export const getImages = (caseId, includeUser = false) =>
+  apiPost('/get-images', { case_id: caseId }, includeUser);
 
-export async function appendLlmHistory(historyEntry) {
-    const response = await fetch(`${API_BASE}/append-llm-history`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(historyEntry),
-    });
+/* ---------- case helpers ---------- */
+export const getLatestCase = (includeUser = false) =>
+  apiPost('/get-latest-case', {}, includeUser);
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-}
+export const listCases = (includeUser = false) =>
+  apiPost('/list-cases', {}, includeUser);
+
+export const createNewCase = (includeUser = false) =>
+  apiPost('/create-new-case', {}, includeUser);
+
+/* ---------- LLM helpers ---------- */
+export const processLlmQuery = (caseId, imageIds, prompt, effort, maxTokens, includeClinicalData, includeHistory, includeUser) =>
+  apiPost('/query-llm',
+          { case_id: caseId, image_ids: imageIds, prompt, effort, max_tokens: maxTokens, include_clinical_data: includeClinicalData, include_history: includeHistory, include_user: includeUser }, true);
+
+export const cancelLLMQuery = caseId =>
+  apiPost('/cancel-llm-query', { case_id: caseId }, true);
+
+/* ---------- user settings ---------- */
+export const getUserSettings = userId =>
+  apiGet(`/user-settings/${userId}`);
+
+export const setUserSettings = (userId, settings) =>
+  apiPost(`/user-settings/${userId}`, settings);
+
+/* ---------- LLM history ---------- */
+export const appendLlmHistory = (caseId, prompt, response, imageCount) =>
+  apiPost('/append-llm-history', { case_id: caseId, prompt, response, image_count: imageCount }, true);
+
+export const getLlmHistory = (caseId, includeUser = false) =>
+  apiPost('/llm-history', { case_id: caseId }, includeUser);
+
+export const clearLlmHistory = (caseId, selected) =>
+  apiPost('/clear-llm-history',
+          { case_id: caseId, selected_history: selected });
+
+
+
+
+

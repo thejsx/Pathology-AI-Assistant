@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import useGlobalStore, { defaultSettings } from '../../GlobalStore';
 import '../styles/UserSettingsModal.css'; // small layout rules
+import useDraggable from '../hooks/useDraggable';
 
 export default function UserSettingsModal({ open, onClose }) {
   const {
@@ -11,16 +12,32 @@ export default function UserSettingsModal({ open, onClose }) {
     fetchUserSettings,
   } = useGlobalStore();
 
+  // draggable modal (always hook before any returns)
+  const modalRef = React.useRef(null);
+  const initialModalPos = React.useMemo(() => ({ x: 300, y: 60 }), []);
+  const [modalKey, setModalKey] = React.useState(0); // to force re-render on modal open
+
+  useEffect(() => {
+    if (open) {
+      setModalKey((prev) => prev + 1);
+    }
+  }, [open]);
+
+  const modalPos = useDraggable(modalRef, initialModalPos, modalKey);
+  
   if (!open) return null;
 
   const handleNumber = (key) => (e) =>
     updateSetting(key, parseFloat(e.target.value));
+  
 
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div
         className="settings-modal"
-        onClick={(e) => e.stopPropagation()} // keep clicks inside
+        ref={modalRef}
+        style={{ position: 'fixed', top: modalPos.y, left: modalPos.x }}
+        onClick={(e) => e.stopPropagation()}
       >
         <h3>User Settings</h3>
 
@@ -52,7 +69,7 @@ export default function UserSettingsModal({ open, onClose }) {
                 Default Prompt&nbsp;
                 <textarea
                     rows="2"
-                    columns="40"
+                    columns="50"
                     value={settings.defaultPrompt}
                     onChange={(e) => updateSetting('defaultPrompt', e.target.value)}
                 >

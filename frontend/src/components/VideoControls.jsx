@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import useDraggable from '../hooks/useDraggable';
 import { useContext } from 'react';
 import CaptureImageButton from './CaptureImageButton';
 import useGlobalStore from '../../GlobalStore';
@@ -12,6 +13,16 @@ export default function VideoControls({ streamRef }) {
         resetSettingsToDefault,
     } = useGlobalStore();
     const isCollapsed = videoControlsCollapsed;
+    // draggable controls position
+    const controlsRef = useRef(null);
+    const [controlsInitPos, setControlsInitPos] = useState({ x: 0, y: 0 });
+    useEffect(() => {
+        const el = controlsRef.current;
+        if (el) {
+            setControlsInitPos({ x: window.innerWidth - el.offsetWidth - 10, y: 10 });
+        }
+    }, []);
+    const controlsPos = useDraggable(controlsRef, controlsInitPos);
 
     const applyTransform = () => {
         const targetElement = streamRef.current;
@@ -77,11 +88,14 @@ export default function VideoControls({ streamRef }) {
 
 
     return (
-        <>
-            {/* Collapsed state - show expand button */}
-                    {isCollapsed && (
+        <div
+            ref={controlsRef}
+            style={{ position: 'fixed', top: controlsPos.y, left: controlsPos.x, right: 'auto', zIndex: 10 }}
+        >
+            {/* Collapsed / Expanded controls */}
+            {isCollapsed ? (
                 <div className="stream-controls-expand">
-                    <button 
+                    <button
                         onClick={() => updateSetting('videoControlsCollapsed', false)}
                         title="Show controls"
                         className="expand-btn"
@@ -89,14 +103,11 @@ export default function VideoControls({ streamRef }) {
                         ☰
                     </button>
                 </div>
-            )}
-
-            {/* Expanded state - show all controls */}
-                    {!isCollapsed && (
+            ) : (
                 <div className="stream-controls">
                     <div className="controls-header">
                         <span className="controls-title">Controls</span>
-                        <button 
+                        <button
                             onClick={() => updateSetting('videoControlsCollapsed', true)}
                             className="collapse-btn"
                             title="Hide controls"
@@ -115,11 +126,11 @@ export default function VideoControls({ streamRef }) {
                     <button onClick={() => nudge('offsetX', -10)}>Left</button>
                     <button onClick={() => nudge('offsetY', 10)}>Down</button>
                     <button onClick={() => nudge('offsetY', -10)}>Up</button>
-                    <button onClick={() => updateSetting('flipX', !flipX)}>Invert X</button>                     
+                    <button onClick={() => updateSetting('flipX', !flipX)}>Invert X</button>
 
                     <button onClick={handleFullScreen}>Fullscreen</button>
                 </div>
             )}
-        </>
+        </div>
     );
 }

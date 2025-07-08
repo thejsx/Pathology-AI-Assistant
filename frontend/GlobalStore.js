@@ -22,20 +22,33 @@ export const defaultSettings = {
   bottomBarLlmResponseWidth: '35vw',
 }
 
+export const defaultClinSettings = {
+  summary: 'No clinical data available.',
+  procedure: 'No procedure data available.',  
+}
 
 const useGlobalStore = create((set, get) => ({
-  // State
+  // StateS
   user: 'JRS',
   selectedImages: [],
   caseId: '',
 
   settings: {...defaultSettings},
   defaultSettings: {...defaultSettings},
+  clinSettings: {...defaultClinSettings},
 
   llmHistory: [],
   selectedHistory: [],
-  
-  // Actions
+
+  // User inclusion for LLM history and images
+  includeUserLLM: false,
+  includeUserImages: false,
+
+  setUserLLM: () => set((s) => ({ includeUserLLM: !s.includeUserLLM })),
+  setUserImages: () => set((s) => ({ includeUserImages: !s.includeUserImages })),
+
+
+  // Image selection helpers
   setSelectedImages: (images) => set({ selectedImages: images }),
   addSelectedImage: (image) => set((state) => ({ 
     selectedImages: [...state.selectedImages, image] 
@@ -45,11 +58,10 @@ const useGlobalStore = create((set, get) => ({
   })),
   clearSelectedImages: () => set({ selectedImages: [] }),
 
+
+  // Case management helpers
   setCaseId: (caseId) => set({ caseId }),
-
-
-
-  // Fetch latest case - call this manually when app starts
+  
   fetchLatestCase: async () => {
     try {
       const data = await getLatestCase();
@@ -82,14 +94,24 @@ const useGlobalStore = create((set, get) => ({
         });
       }
     } catch {
-      /* first launch — no file yet → fall back to factory defaults */
+
     }
   },
 
-  fetchHistory: async () => {
+  // Clinical data management
+  setClinSummary: (summary) => set((s) => ({
+    clinSettings: { ...s.clinSettings, summary: summary }
+  })),
+
+  setProcedure: (procedure) => set((s) => ({
+    clinSettings: { ...s.clinSettings, procedure: procedure }
+  })),
+
+  // LLM history management
+  fetchHistory: async (includeUserLLM) => {
     const { caseId } = get();
     if (!caseId) return;
-    const { history } = await getLlmHistory(caseId);
+    const { history } = await getLlmHistory(caseId, includeUserLLM);
     set({ llmHistory: history});
   },
 
