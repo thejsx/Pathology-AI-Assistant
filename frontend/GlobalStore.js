@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getLatestCase } from './src/communications/mainServerAPI';
-import {  getUserSettings,  setUserSettings, getLlmHistory, clearLlmHistory} from './src/communications/mainServerAPI';
+import {  getUserSettings,  setUserSettings, getLlmHistory, clearLlmHistory, getClinicalData, updateClinicalFields} from './src/communications/mainServerAPI';
 
 export const defaultSettings = {
   zoom: 1,
@@ -13,6 +13,8 @@ export const defaultSettings = {
   defaultPrompt: "",
   includeHistory: false,
   includeClinicalData: false,
+  includeClinSummaryOnly: true,
+  includeAllClinicalData: false,
   // UI preferences
   sidebarCollapsed: false,
   videoControlsCollapsed: false,
@@ -22,10 +24,6 @@ export const defaultSettings = {
   bottomBarLlmResponseWidth: '35vw',
 }
 
-export const defaultClinSettings = {
-  summary: 'No clinical data available.',
-  procedure: 'No procedure data available.',  
-}
 
 const useGlobalStore = create((set, get) => ({
   // StateS
@@ -35,7 +33,15 @@ const useGlobalStore = create((set, get) => ({
 
   settings: {...defaultSettings},
   defaultSettings: {...defaultSettings},
-  clinSettings: {...defaultClinSettings},
+
+  clinSettings: {
+    specimen: {'label': 'Specimen', 'value': { summary: '', details: {}, date: '' }},
+    summary: { 'label': 'Summary', 'value': '' },
+    procedure: { 'label': 'Procedure', 'value': '' },
+    pathology: { 'label': 'Pathology', 'value': '' },
+    imaging: { 'label': 'Imaging', 'value': '' },
+    labs: { 'label': 'Labs', 'value': '' }
+  },
 
   llmHistory: [],
   selectedHistory: [],
@@ -99,13 +105,27 @@ const useGlobalStore = create((set, get) => ({
   },
 
   // Clinical data management
-  setClinSummary: (summary) => set((s) => ({
-    clinSettings: { ...s.clinSettings, summary: summary }
-  })),
 
-  setProcedure: (procedure) => set((s) => ({
-    clinSettings: { ...s.clinSettings, procedure: procedure }
-  })),
+  setClinicalFieldValue: (field, value) => {
+    set((s) => ({ clinSettings: { ...s.clinSettings, [field]: { ...s.clinSettings[field], value } } }));
+  },
+
+  fetchClinicalData: async () => {
+    const { caseId } = get();
+    if (!caseId) return;
+    const { clinical } = await getClinicalData(caseId);
+    
+    Object.entries(clinical).forEach(([field, value]) => {
+      set((s) => ({
+        clinSettings: { ...s.clinSettings, [field]: { ...s.clinSettings[field], value } }
+      }));
+    });
+  },
+
+  saveSelectedClinical: async (fields) => {
+    const { caseId } = get();
+    await updateClinicalFields(caseId, fields);
+  },
 
   // LLM history management
   fetchHistory: async (includeUserLLM) => {

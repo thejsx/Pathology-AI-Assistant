@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../styles/BottomBar.css';
-import {processLlmQuery, cancelLLMQuery, appendLlmHistory} from '../communications/mainServerAPI.js' 
+import {processLlmQuery, cancelLLMQuery, appendLlmHistory, updateClinicalFields, getClinicalData} from '../communications/mainServerAPI.js' 
 import useGlobalStore from '../../GlobalStore';
 import ClinicalDataModal from './ClinicalDataModal.jsx';
 import HistoryModal from './HistoryModal';
 
 export default function BottomBarContent({bottomBarHeight}) {
-    const { settings, clinSettings, updateSetting, selectedImages, caseId, includeUserLLM, fetchHistory, setClinSummary } = useGlobalStore();
+    const { settings, clinSettings, updateSetting, selectedImages, caseId, includeUserLLM, fetchHistory, setClinicalFieldValue } = useGlobalStore();
     const clinDataWidth = settings.bottomBarClinDataWidth || '30vw';
     const inputTextWidth = settings.bottomBarInputTextWidth || '35vw'; 
     const llmResponseWidth = settings.bottomBarLlmResponseWidth || '35vw';
@@ -14,6 +14,7 @@ export default function BottomBarContent({bottomBarHeight}) {
     const [textValue, setTextValue] = useState(settings.defaultPrompt || '');
     const [llmResponse, setLlmResponse] = useState('No query currently made.');
     const [useImagesChecked, setUseImagesChecked] = useState(selectedImages.length > 0);
+    const [useClinicalChecked, setUseClinicalChecked] = useState(settings.includeClinicalData);
 
     const [showClinicalData, setShowClinicalData] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -93,20 +94,33 @@ export default function BottomBarContent({bottomBarHeight}) {
         setLlmResponse('Processing images and/or query...');
 
         const currentPrompt = textValue.trim();
-        const currentCaseId = caseId;
+        let clinicalData = null;
+        if (settings.includeClinicalData) {
+            if (settings.includeClinSummaryOnly) {
+            clinicalData = clinSettings.summary.value;     // string
+            } else if (settings.includeAllClinicalData) {
+            clinicalData = {                              // object
+                summary:    clinSettings.summary.value,
+                procedure:  clinSettings.procedure.value,
+                pathology:  clinSettings.pathology.value,
+                imaging:    clinSettings.imaging.value,
+                labs:       clinSettings.labs.value,
+                specimen:   clinSettings.specimen.value     
+            };}
+        }
 
         const response = await processLlmQuery(
-            currentCaseId,
+            caseId,
             selectedImages,
             currentPrompt,
             settings.reasoningEffort,
             settings.maxTokens? settings.maxTokens : 0,
-            settings.includeClinicalData,
             settings.includeHistory,
-            includeUserLLM
+            includeUserLLM,
+            clinicalData
         );
         console.log('LLM Response:', response['response']);
-        appendLlmHistory(currentCaseId, currentPrompt, response['response'], selectedImages.length)
+        appendLlmHistory(caseId, currentPrompt, response['response'], selectedImages.length)
         setLlmResponse(response['response']);
         await fetchHistory();  // Refresh history after appending
     }
@@ -120,6 +134,17 @@ export default function BottomBarContent({bottomBarHeight}) {
         setUseImagesChecked(selectedImages.length > 0);
     }, [selectedImages]);
 
+    const handleUseClinicalCheck = (event) => {
+        setUseClinicalChecked(event.target.checked);
+        // update global settings
+        updateSetting('includeClinicalData', event.target.checked);
+    }
+
+    useEffect(() => {
+        // Update the checkbox state based on global settings
+        setUseClinicalChecked(settings.includeClinicalData);
+    }, [settings.includeClinicalData]);
+
     useEffect(() => {
         // Update the text value with the default prompt from settings
         setTextValue(settings.defaultPrompt);
@@ -128,21 +153,37 @@ export default function BottomBarContent({bottomBarHeight}) {
     return (    
         <div className="bottom-bar" style={{ height: `${bottomBarHeight}px` }}>
             <div className="clinical-data-container"  style={{ width: clinDataWidth }}>
-                <h2>Clinical Data</h2>
+                <h2>Clinical Data Summary</h2>
                 <div className="output-response-area">
                     
                     <textarea
-                        value={clinSettings.summary}
+                        value={clinSettings.summary.value}
                         onChange={(e) => {
-                            setClinSummary(e.target.value);
+                            setClinicalFieldValue('summary', e.target.value);
                         }}
                         className='clinical-data-text-area' />
                 </div>
                 <div className="clinical-data-button-container">
-                    <button onClick={() => { setClinSummary('');}}>Clear</button>
-                    <button onClick={() => setShowClinicalData(true)}> Show Data</button>
+                    <button onClick={() => { setClinicalFieldValue('summary', '');}}>Clear</button>
+                    <button 
+                        onClick={() => {updateClinicalFields(caseId, { summary: clinSettings.summary.value });}}
+                        title='Save clinical summary for this case to database'>Save</button>
+                    <button onClick={() => setShowClinicalData(true)} title='Show all clinical data and documents for this case. Add new documents or data as needed.'> Show All Data</button>
                 </div>
-                
+                    
+                <div className="clinical-modifier-div">
+                    <input
+                        type="checkbox"
+                        id="use-clinical-checkbox"
+                        checked={useClinicalChecked}
+                        onChange={handleUseClinicalCheck}
+                    >
+                    </input>
+                    <label htmlFor="use-clinical-checkbox">
+                        Use clinical data in query
+                    </label>
+                </div>
+
             </div>
 
             <div 
@@ -193,7 +234,7 @@ export default function BottomBarContent({bottomBarHeight}) {
                         Clear
                     </button>
                 </div>
-                <div className="input-modifier-divs">
+                <div className="input-modifier-div">
                     <input
                         type="checkbox"
                         id="use-images-checkbox"

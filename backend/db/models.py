@@ -110,6 +110,7 @@ class ClinicalData():
 
     case_id:   Mapped[str]    = mapped_column(
                     ForeignKey("cases.case_id", ondelete="CASCADE"), primary_key=True)
+    specimen:   Mapped[dict]  = mapped_column(JSON, default=lambda: {"summary":   "No specimen data", "details": {}, "date": ""})
     summary:   Mapped[str]    = mapped_column(String, default=
                     "No clinical data available.")
     procedure: Mapped[str]    = mapped_column(String, default=

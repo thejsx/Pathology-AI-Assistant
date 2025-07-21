@@ -4,9 +4,7 @@ import os
 import base64
 import functions
 from sqlalchemy import select, func
-from db.models import (
-    Image, ClinicalData, LLMHistory
-)
+
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -18,7 +16,7 @@ async def main(payload, session):
         return "Error processing images: No valid images found in database."
     
     msgs_imgs = await construct_messages(payload, image_list, session)
-
+    print(f"Constructed messages for LLM query: {msgs_imgs}")
     response = await query_llm(
         msgs_imgs,
         payload.effort,
@@ -53,12 +51,16 @@ async def process_images(image_ids, case_id):
 async def construct_messages(payload, image_list, session):
     messages = [{"role": "system", "content": "Please analyze the users query and/or images."}]
 
-    if payload.include_clinical_data:
-        clin_data_stmt = select(ClinicalData).where(ClinicalData.case_id == payload.case_id)
-        clin_data = (await session.scalars(clin_data_stmt)).all()
-        if clin_data:
-            messages[0]["content"] += " The following clinical data is available: "
-            messages[0]["content"] += clin_data
+    if payload.clinical_data:
+        if isinstance(payload.clinical_data, str):
+           clin_data = "The following clinical data is available: " + payload.clinical_data
+        else:
+            clin_data = "\n".join( [f"{key}: {value}" for key, value in payload.clinical_data.items() if key != "specimen"] )
+            if payload.clinical_data.get("specimen"):
+                clin_data = f"The following clinical data is available regarding the specimen {payload.clinical_data['specimen']['summary']} collected on {payload.clinical_data['specimen']['date']}:" + "\n" + clin_data
+            else:
+                clin_data = "The following clinical data is available:\n" + clin_data
+        messages[0]["content"] += clin_data
 
     if payload.include_history:
         # fetch history in ascending order by start_ts

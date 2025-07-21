@@ -1,8 +1,7 @@
-import os
+import os, json, base64
 from datetime import date
 from sqlalchemy import select, func, delete
 from db.models import Image, Case, LLMHistory, ClinicalData, ClinicalDoc
-import base64
 from uuid import uuid4
 
 async def count_images(case_id: str, session):
@@ -14,6 +13,7 @@ async def count_images(case_id: str, session):
     result = await session.scalar(stmt)
     return result or 0
 
+# Check if a case exists, create it if not
 async def check_create_case(case_id, user_id, session):
 
     stmt = select(Case).where(Case.case_id == case_id)
@@ -126,3 +126,102 @@ async def clear_selected_history(case_id, user_id, selected_indices, session, su
     
     await session.commit()
 
+# ─────────────────────── clinical data ─────────────────────
+
+def _ensure_clinical_dir(case_id: str) -> str:
+    """return …/storage/clinical/<case_id>/  (creates if missing)"""
+    path = os.path.join("storage", "clinical", case_id)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+async def get_clinical_data(case_id: str, session):
+    row = await session.scalar(select(ClinicalData).where(ClinicalData.case_id == case_id))
+    if row is None:
+        # create default row but don't save it
+        row = ClinicalData(case_id=case_id, specimen={"summary": "No specimen data available.", "details": {}, "date": None}, summary="No summary data", procedure="No procedure data", pathology="No pathology data", imaging="No imaging data", labs="No laboratory data")
+
+    return {
+        "specimen":  row.specimen,
+        "summary":   row.summary,
+        "procedure": row.procedure,
+        "pathology": row.pathology,
+        "imaging":   row.imaging,
+        "labs":      row.labs,
+    }
+
+async def update_clinical_fields(case_id: str, fields: dict, session):
+    row = await session.scalar(select(ClinicalData).where(ClinicalData.case_id == case_id))
+    if row is None:
+        row = ClinicalData(case_id=case_id)
+        session.add(row)
+
+    for k, v in fields.items():
+        if hasattr(row, k):
+            if isinstance(v, str):
+                setattr(row, k, v.strip())
+            else:
+                setattr(row, k, v)
+    await session.commit()
+    return await get_clinical_data(case_id, session)
+
+# ───────────────────── clinical documents ─────────────────
+async def list_clinical_documents(case_id: str, session) -> int:
+    rows = await session.scalars(select(ClinicalDoc).where(ClinicalDoc.case_id == case_id))
+    return [{"title": row.title, "url": row.location} for row in rows]
+
+async def save_clinical_document(case_id: str, user_id: str,
+                                 filename: str, data_url: str, session):
+    docs_dir = _ensure_clinical_dir(case_id)
+    # ensure unique filename
+    if filename in os.listdir(docs_dir):
+        end_num = filename.split("_")[-1]
+        if end_num.isdigit():
+            end_num = int(end_num) + 1
+            filename = f"{filename.rsplit('_', 1)[0]}_{end_num:02d}"
+        else:
+            filename = f"{filename}_01"
+   
+    full_path = os.path.join(docs_dir, filename)
+
+    # strip possible data‑URL prefix & decode
+    b64 = data_url.split(",")[-1]
+    with open(full_path, "wb") as fh:
+        fh.write(base64.b64decode(b64))
+
+    rel_path = f"/clinical/{case_id}/{filename}"
+
+    doc = ClinicalDoc(
+        case_id=case_id,
+        user_id=user_id,
+        title=filename,
+        doc_type=os.path.splitext(filename)[1].lstrip("."),
+        location=rel_path,
+    )
+    session.add(doc)
+    await session.commit()
+    return {"saved": filename, "url": rel_path}
+
+async def delete_clinical_documents(case_id: str, urls: list[str], session):
+    if not urls:                                              # nothing to do
+        return await list_clinical_documents(case_id, session)
+
+    # fetch rows
+    rows = (
+        await session.scalars(
+            select(ClinicalDoc)
+            .where(ClinicalDoc.case_id == case_id,
+                   ClinicalDoc.location.in_(urls))
+        )
+    ).all()
+
+    for row in rows:
+        # remove file from disk (best‑effort)
+        disk_path = os.path.join("storage", "clinical", *row.location.split("/")[2:])
+        try:
+            os.remove(disk_path)
+        except FileNotFoundError:
+            pass
+        await session.delete(row)
+
+    await session.commit()
+    return await list_clinical_documents(case_id, session)

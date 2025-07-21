@@ -38,10 +38,23 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.8rem;
     overflow-y: auto;
     overflow-wrap: break-all;
     resize: none; /* Prevent manual resizing since it should fill space */
+}
+
+.clinical-data-button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.clinical-modifier-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .input-text-container {
@@ -64,18 +77,20 @@
 }
 
 .input-button-container {
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: 0.25rem;
     margin-top: 0.25rem;
 }
 
-.input-modifier-divs {
+.input-modifier-div {
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: 0.25rem;
     margin-top: 0.25rem;
 }
 
@@ -99,4 +114,29 @@
     overflow-wrap: break-all;
     display: flex; /* Make this a flex container */
     flex-direction: column;
+}
+
+label.sub-option {
+  margin-left: 0.5rem;   /* visually nests under parent switch */
+}
+
+.settings-actions {
+  bottom: 0;               /* sticks to the bottom edge */
+  background: #2a2a2a;     /* same as modal background */
+  padding: 0.4rem 0;       /* vertical breathing room */
+  border-top: 1px solid #555;
+  margin-top:0.6rem;
+}
+.settings-content {
+  overflow-y: auto;
+  max-height: 60vh;          /* room for the buttons below */
+  padding-right: 0.3rem;     /* avoids scrollbar overlaying text */
+}
+
+.settings-modal {
+  display: flex;
+  flex-direction: column;
+  /* max height of whole modal so it never exceeds viewport */
+  max-height: 70vh;
+  overflow: hidden;          /* no scrolling on the outer shell now */
 }

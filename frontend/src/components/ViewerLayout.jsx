@@ -8,7 +8,7 @@ import '../styles/Viewer.css';
 export default function ViewerLayout({ videoStream, videoControls, streamRef }) {
     const [isResizingBottomBar, setIsResizingBottomBar] = useState(false);
     const [mouseStartY, setMouseStartY] = useState(0);
-    const { settings, updateSetting, fetchUserSettings } = useGlobalStore();
+    const { settings, updateSetting, fetchUserSettings, fetchLatestCase, fetchClinicalData, caseId, user } = useGlobalStore();
     const bottomBarHeight = settings.bottomBarHeight || 250; // Default height if not set
 
     // Fetch user settings once on mount
@@ -17,7 +17,22 @@ export default function ViewerLayout({ videoStream, videoControls, streamRef }) 
         fetchUserSettings().catch((error) => {
             console.error('Error fetching user settings:', error);
         });
+    }, [user]);
+
+    useEffect(() => {
+        console.log('Fetching latest case on mount');
+        fetchLatestCase();
     }, []);
+
+    // Fetch clinical data once on mount
+    useEffect(() => {
+        if (caseId) {
+            console.log('Fetching clinical data on mount for caseId:', caseId);
+            fetchClinicalData().catch((error) => {
+                console.error('Error fetching clinical data:', error);
+            });
+        }
+    }, [caseId]);
 
     const handleBottomBarResize = useCallback((e) => {
         if (isResizingBottomBar) {

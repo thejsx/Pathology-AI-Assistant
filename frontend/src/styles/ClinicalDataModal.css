@@ -1,27 +1,195 @@
-.clinical-data-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0 0 0 / 0.6);
+/* reuse .hist-overlay from HistoryModal for backdrop */
+.clin-modal{
+  background:#2a2a2a;border:1px solid #555;border-radius:10px;
+  max-width:80vw;max-height:85vh;
+  padding:1rem;display:inline-flex;flex-direction:column;overflow:auto;
+  width: auto;
+  flex:0 1 auto;
+  resize:both;
+}
+.clin-fields{
+  flex: 0 1 auto;
+  min-width:0;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:.6rem;
+}
+.clin-field{
+  border:1px solid #444;border-radius:6px;padding:.6rem;
+  display:flex;flex-direction:column;gap:.4rem;
+
+}
+.clin-chk{font-weight:bold;}
+
+.clin-text{
+  width:100%;          /* fill the modal’s current width */
+  min-width:0;         /* ← NEW: let it shrink with the modal      */
+
+  min-height:1rem;
+  max-height:20vh;
+  resize:none;
+  padding:.4rem;
+  border-radius:4px;
+  border:1px solid #333;
+  overflow-y:auto;
+  box-sizing:border-box;
+  background:#1e1e1e;
+  color:#fff;
+}
+.clin-actions{
+  display:flex;
+  gap:.8rem;align-items:center;justify-content:center;
+}
+
+.clin-docs{
+  border-top:1px solid #444;
+  margin-top:.6rem;
+  padding-top:.6rem;
+  justify-content:space-between;
+  align-items:center;
+
+}
+
+.clin-doc-actions{
+  display:flex;
+  align-items:center;
+  gap:.4rem; 
+  width: 100%; 
+
+}
+
+.clin-doc-actions button{margin-right:.4rem;}
+
+.clin-doc-toggle { cursor:pointer; user-select:none; }
+
+.clin-doc-list   { 
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  max-height:10rem; 
+  overflow:auto; 
+  margin:.5rem 0 0; 
+  padding-left:1rem; 
+}
+.clin-doc-list li a { color:#87b2f7; text-decoration:underline; }
+.clin-doc-row { 
+  width: 100%;
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  gap:.6rem; 
+}
+.doc-del-btn  { background:none; border:none; color:rgb(241, 237, 237); cursor:pointer; }
+.doc-del-btn:hover { color:#ff8888; }
+
+.clin-specimen-header {
+  border: 1px solid #5a5a5a;
+  background-color: #333;
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1002;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.clinical-data-modal {
-  background: #2a2a2a;
-  border: 1px solid #555;
-  border-radius: 10px;
-  width: fit-content;
-  max-width: 80vw;
-  max-height: 80vh;
-  padding: 1rem;
-  overflow: hidden;           /* keep header + actions visible */
+.specimen-fields {
+  display: flex;
+  flex-grow: 1;
+  gap: 1rem;
 }
 
-.clinical-data-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow-y: auto;
+.specimen-summary-field {
+  flex-grow: 1;
 }
+
+.specimen-summary-field label,
+.specimen-date-field label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+  color: #ccc;
+}
+
+.specimen-summary-input,
+.specimen-date-input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background-color: #1e1e1e;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.specimen-date-input {
+  color-scheme: dark; /* Helps style the date picker icon for dark mode */
+}
+
+.specimen-actions button {
+  padding: 0.6rem 1rem;
+  font-weight: bold;
+  display:flex;
+  flex-direction: column;
+}
+
+.clin-separator {
+  border: none;
+  border-top: 4px solid #686767;
+  margin: 0.2rem 0 1rem 0; /* Adjust spacing */
+}
+
+/* ... (other specimen header styles) */
+
+/* UPDATED: New style for the specimen save button */
+.specimen-btn {
+  width: 100%;
+  background-color: #4f4f4f; /* A pleasant grey */
+  color: #e0e0e0;
+  border: 1px solid #666;
+  border-radius: 5px;
+  padding: 0.1rem 0.2rem; /* Smaller padding */
+  font-size: 0.6em;       /* Smaller font */
+  font-weight: normal;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.specimen-btn:hover {
+  background-color: #5a5a5a;
+  color: #fff;
+}
+
+.regen-row{
+  display:flex;align-items:flex-start;gap:.6rem;
+  width:100%;
+  flex-wrap:wrap;margin-top:.8rem;
+}
+.regen-btn{
+  background:#4f4f4f;color:#e0e0e0;
+  border:1px solid #666;border-radius:6px;
+  padding:.6rem 1rem;font-weight:bold;cursor:pointer;
+  transition:background .2s;
+}
+.regen-btn:disabled{opacity:.6;cursor:not-allowed;}
+.regen-btn:not(:disabled):hover{background:#5a5a5a;}
+
+.regen-output{
+  flex:1;min-width:16rem;min-height:1rem;max-height:8rem;
+  overflow:auto;white-space:pre-wrap;
+  padding:.5rem;border:1px solid #444;border-radius:6px;
+  background:#1e1e1e;color:#e0e0e0;font-size:.85rem;
+}
+
+/* simple CSS spinner */
+.spinner{
+  display:inline-block;
+  width:1rem;height:1rem;
+  border:.15rem solid #ccc;
+  border-top-color:#555;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}

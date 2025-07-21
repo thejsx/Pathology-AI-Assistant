@@ -1,19 +1,20 @@
 from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import date
 import asyncio
 import functions
+import llm_from_docs
 import llm_processing
 import pydantic_models as models
 from sqlalchemy import select
 from db.models import Case, Image, LLMHistory, User
 from db.session import get_session
-import os
+import json
 
 
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="storage/images"), name="images")
+app.mount("/clinical", StaticFiles(directory="storage/clinical"), name="clinical")
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +53,7 @@ async def get_images(payload: models.GetImagesPayload, session = Depends(get_ses
 async def get_latest_case(session = Depends(get_session)):
     print("Fetching latest case ID")
     case_id = await functions.find_latest_case(session)
+    print(f"Latest case ID: {case_id}")
     return {"case_id": case_id}
 
 
@@ -164,5 +166,44 @@ async def get_llm_history(payload: models.GetLLMHistoryPayload, session = Depend
 @app.post("/clear-llm-history")
 async def delete_llm_history(payload: models.DeleteLLMHistoryPayload, session = Depends(get_session)):
     print(f"Clearing LLM history for case_id: {payload.case_id} with selected entries: {payload.selected_history}")
-    await functions.clear_selected_history(payload.case_id, payload.user_id, payload.selected_history, payload.summary, session)
+    await functions.clear_selected_history(payload.case_id, payload.user_id, payload.selected_history, session)
     return {"status": "cleared"}
+
+@app.post("/clinical-data/get")
+async def api_get_clinical(payload: models.CaseId, session=Depends(get_session)):
+    print(f"Fetching clinical data for case_id: {payload.case_id}")
+    data  = await functions.get_clinical_data(payload.case_id, session)
+    return {"clinical": data}
+
+@app.post("/clinical-data/update")
+async def api_update_clinical(payload: models.ClinicalFieldsUpdate, session=Depends(get_session)):
+    data = await functions.update_clinical_fields(payload.case_id, payload.fields, session)
+    return {"clinical": data}
+
+@app.post("/clinical-docs/retrieve")
+async def api_docs_retrieve(payload: models.CaseId, session=Depends(get_session)):
+    docs = await functions.list_clinical_documents(payload.case_id, session)
+    print(f"Retrieved docs: {docs}")
+    return {"count": len(docs), "docs": docs}
+
+@app.post("/clinical-docs/upload")
+async def api_docs_upload(payload: models.ClinicalDocUpload, session=Depends(get_session)):
+    return await functions.save_clinical_document(
+        payload.case_id, payload.user_id,
+        payload.filename, payload.file_data, session
+    )
+
+@app.post("/clinical-docs/delete")
+async def api_docs_delete(payload: models.ClinicalDocsDelete, session=Depends(get_session)):
+    docs = await functions.delete_clinical_documents(payload.case_id, payload.urls, session)
+    return {"count": len(docs), "docs": docs}
+
+@app.post("/clinical-docs/llm-query")
+async def api_docs_llm_query(payload: models.ClinicalDocsLLMQuery, session=Depends(get_session)):
+    print(f"Processing clinical documents LLM query for case_id: {payload.case_id} with selected indices: {payload.selected}")
+    raw_response = await llm_from_docs.main(payload.case_id, payload.user_id, payload.selected, payload.specimen,session)
+    print(f"LLM response: {raw_response}")
+    cleaned_response = raw_response.strip().removeprefix("```json").removesuffix("```")
+    return json.loads(cleaned_response)
+
+
