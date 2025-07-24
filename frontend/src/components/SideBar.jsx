@@ -260,7 +260,7 @@ export default function SideBar({ streamRef }) {
                                             <p>No images available</p>
                                             ) : (
                                         serverImages.map((image, index) => {
-                                            const url = `http://${location.hostname}:10000${image.url}`;
+                                            const url = `https://${location.hostname}:8000${image.url}`;
                                             const isChecked = selectedImages.includes(image.filename);
                                             return (
                                                 <div key={image.filename} className="image-item">

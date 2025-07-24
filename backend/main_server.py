@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -10,6 +10,7 @@ from sqlalchemy import select
 from db.models import Case, Image, LLMHistory, User
 from db.session import get_session
 import json
+from uuid import uuid4
 
 
 app = FastAPI()
@@ -25,6 +26,38 @@ app.add_middleware(
 )
 tasks: dict[str, asyncio.Task] = {}
 task_lock = asyncio.Lock()
+
+connections: list[dict] = []
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    client_id = str(uuid4())
+    print(f"Client {client_id} connected")
+    connections.append({ 'id': client_id, 'ws': websocket })
+    await websocket.send_json({"type": "id", "id": client_id})
+    try:
+        while True:
+            data = await websocket.receive_json()
+            target = data.get("target")
+            if target:
+                # data_dict = {key: val for key, val in data.items() if key != 'data'}
+                # print( f"Message from {client_id} to target {data_dict}")
+                for conn in connections:
+                    if conn['id'] == target:
+                        await conn['ws'].send_json(data)
+                        break
+            else:
+                # data_dict = {key: val for key, val in data.items() if key != 'data'}
+                # print(f"Message from {client_id} (broadcast): {data_dict})")
+                # Broadcast to all connections if no target is specified
+                for conn in connections:
+                    if conn['ws'] != websocket:
+                        await conn['ws'].send_json(data)
+    except WebSocketDisconnect:
+        print(f"Client {client_id} disconnected")
+        connections[:] = [conn for conn in connections if conn['ws'] != websocket]
+        await websocket.close()
 
 @app.post("/capture-image")
 async def capture_image(payload: models.ImagePayload, session = Depends(get_session)):

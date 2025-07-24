@@ -1,4 +1,4 @@
-const API_BASE = `http://${location.hostname}:10000`;
+const API_BASE = `https://${location.hostname}:8000`;
 import useGlobalStore from '../../GlobalStore';
 
 /* ----------  helpers ---------- */
