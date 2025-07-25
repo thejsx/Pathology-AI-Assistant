@@ -11,6 +11,7 @@ import useDraggable from '../hooks/useDraggable';
 
 export default function SideBar({ streamRef }) {
     const {
+        API_BASE,
         caseId,
         setCaseId,
         selectedImages,
@@ -260,7 +261,8 @@ export default function SideBar({ streamRef }) {
                                             <p>No images available</p>
                                             ) : (
                                         serverImages.map((image, index) => {
-                                            const url = `https://${location.hostname}:8000${image.url}`;
+
+                                            const url = `${API_BASE}${image.url}`;
                                             const isChecked = selectedImages.includes(image.filename);
                                             return (
                                                 <div key={image.filename} className="image-item">

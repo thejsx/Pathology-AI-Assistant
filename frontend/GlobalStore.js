@@ -27,6 +27,7 @@ export const defaultSettings = {
 
 const useGlobalStore = create((set, get) => ({
   // StateS
+  API_BASE: import.meta.env.VITE_API_ORIGIN || `https://${location.hostname}:8000`,
   user: 'JRS',
   selectedImages: [],
   caseId: '',

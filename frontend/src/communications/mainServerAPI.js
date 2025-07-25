@@ -1,12 +1,12 @@
-const API_BASE = `https://${location.hostname}:8000`;
 import useGlobalStore from '../../GlobalStore';
 
 /* ----------  helpers ---------- */
 async function apiPost(path, body = {}, includeUser = false) {
   if (includeUser) {
-    const { user } = useGlobalStore.getState();
+    const {  user } = useGlobalStore.getState();
     body = { ...body, user_id: user };
   }
+  const API_BASE = useGlobalStore.getState().API_BASE;
   console.log(`POST ${API_BASE}${path}`, body);
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
