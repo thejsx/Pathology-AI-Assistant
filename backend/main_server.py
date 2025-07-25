@@ -14,16 +14,22 @@ from uuid import uuid4
 
 
 app = FastAPI()
-app.mount("/images", StaticFiles(directory="storage/images"), name="images")
-app.mount("/clinical", StaticFiles(directory="storage/clinical"), name="clinical")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "https://microscope-ui.onrender.com",   # prod UI
+        "http://localhost:3000",                # local dev
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/images", StaticFiles(directory="storage/images"), name="images")
+app.mount("/clinical", StaticFiles(directory="storage/clinical"), name="clinical")
+
+
 tasks: dict[str, asyncio.Task] = {}
 task_lock = asyncio.Lock()
 
