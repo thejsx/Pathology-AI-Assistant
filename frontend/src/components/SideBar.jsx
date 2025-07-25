@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, use } from 'react';
-import '../styles/SideBar.css';
+import '../styles/Sidebar.css';
 import { getImages, deleteImages, listCases, createNewCase, captureImage } from '../communications/mainServerAPI';
 import useGlobalStore from '../../GlobalStore';
 import { Autocomplete, TextField, Box } from '@mui/material';
