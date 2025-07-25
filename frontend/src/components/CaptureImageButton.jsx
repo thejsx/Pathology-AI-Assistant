@@ -1,7 +1,7 @@
 import React from 'react';
 import useGlobalStore from '../../GlobalStore';
 import { captureImage } from '../communications/mainServerAPI';
-import '../styles/SideBar.css';
+import '../styles/Sidebar.css';
 
 export default function CaptureImageButton({ streamRef }) {
     const {
