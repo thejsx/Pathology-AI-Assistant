@@ -9,6 +9,14 @@ export default function Phone() {
   const remoteId  = useRef(null);
   const [status, setStatus] = useState("initialising…");
 
+  const rtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+    iceCandidatePoolSize: 10,   // small pool is plenty for one‑to‑one calls
+  };
+
   useEffect(() => {
     let mounted = true;                           // helps us ignore late callbacks
 
@@ -42,7 +50,7 @@ export default function Phone() {
         peerRef.current = new Peer({
           initiator: true,
           stream,
-          config: { iceServers: [], iceCandidatePoolSize: 0 }
+          config: rtcConfig,
         });
         
         peerRef.current.on("signal", data => {
@@ -87,7 +95,7 @@ export default function Phone() {
       peerRef.current = new Peer({
         initiator: true,
         stream: videoRef.current.srcObject, // we still have the camera
-        config: { iceServers: [], iceCandidatePoolSize: 0 }
+        config: rtcConfig,
       });
       peerRef.current.on("signal", data => {
         sockRef.current.send({

@@ -32,7 +32,12 @@ export default function Viewer() {
             const meId = sockRef.current.peerId();
             peerRef.current = new Peer({
                 initiator: false,
-                config: { iceServers: [], iceCandidatePoolSize: 0 },
+                config: { 
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                    ], 
+                    iceCandidatePoolSize: 10 },
             });
             peerRef.current.signal(msg.data);
 
