@@ -62,7 +62,10 @@ async def create_new_case_number(session):
     stmt = select(Case).where(Case.case_id.like(f"{today}--%"))
     case_dirs = (await session.scalars(stmt)).all()
     print('case dirs are:',case_dirs)
+
     if case_dirs:
+        if  isinstance(case_dirs, object):
+            case_dirs = [case.case_id for case in case_dirs]
         highest_index = max(int(d.split('--')[-1]) for d in case_dirs)
         return f"{today}--{str(highest_index + 1).zfill(2)}"
     return f"{today}--01"
