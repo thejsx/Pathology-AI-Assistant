@@ -17,12 +17,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://pathology-ai-assistant.onrender.com",   
-        "https://microscope-ui.onrender.com", # prod UI
-        "http://localhost:3000",                # local dev
-    ],
-    allow_credentials=False,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

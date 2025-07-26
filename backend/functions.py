@@ -60,9 +60,8 @@ async def create_new_case_number(session):
     # Create a new case ID based on today's date and the highest index of existing cases
     today = date.today().isoformat()
     stmt = select(Case).where(Case.case_id.like(f"{today}--%"))
-    result = await session.execute(stmt)
-    case_dirs = result.scalars().all()
-    print(case_dirs)
+    case_dirs = (await session.scalars(stmt)).all()
+    print('case dirs are:',case_dirs)
     if case_dirs:
         highest_index = max(int(d.split('--')[-1]) for d in case_dirs)
         return f"{today}--{str(highest_index + 1).zfill(2)}"

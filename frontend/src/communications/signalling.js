@@ -1,7 +1,8 @@
 // very small wrapper ------------------------------------------------
 export function openSignallingSocket(onMessage) {
-    const scheme = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${scheme}://${location.hostname}:8000/ws`);
+    const base = import.meta.env.VITE_WS_ORIGIN ?? "wss://localhost:8000";   // dev
+    const ws = new WebSocket(`${base}/ws`);
+    console.log('Connecting to signalling server:', ws.url);
     let myId = null;
     console.log('Attempting to connect to signalling server:');
     ws.onmessage = (ev) => {
