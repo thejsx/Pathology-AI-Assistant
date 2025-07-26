@@ -27,7 +27,6 @@ export const defaultSettings = {
 
 const useGlobalStore = create((set, get) => ({
   // StateS
-  API_BASE: import.meta.env.VITE_API_ORIGIN || `https://${location.hostname}:8000`,
   user: 'JRS',
   selectedImages: [],
   caseId: '',
@@ -93,17 +92,17 @@ const useGlobalStore = create((set, get) => ({
 
   fetchUserSettings: async () => {
     const { user } = get();
-    try {
       const { settings } = await getUserSettings(user);
       if (settings) {
         set({
           settings: { ...settings },
         });
       }
-    } catch {
+      else {
+        console.warn('No settings found for user:', user);
+      }
+    },
 
-    }
-  },
 
   // Clinical data management
 

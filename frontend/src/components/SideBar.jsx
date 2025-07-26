@@ -7,11 +7,10 @@ import UserSettingsModal from './UserSettingsModal';
 import CaptureImageButton from './CaptureImageButton';
 import useDraggable from '../hooks/useDraggable';
 
-
+const API_BASE = import.meta.env.VITE_API_ORIGIN || `https://${location.hostname}:8000`;
 
 export default function SideBar({ streamRef }) {
     const {
-        API_BASE,
         caseId,
         setCaseId,
         selectedImages,

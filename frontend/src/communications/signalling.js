@@ -1,6 +1,6 @@
 // very small wrapper ------------------------------------------------
 export function openSignallingSocket(onMessage) {
-    const socket = new WebSocket(import.meta.env.VITE_WS_ORIGIN ?? "wss://localhost:8000/ws");
+    const socket = new WebSocket(import.meta.env.VITE_WS_ORIGIN ?? `wss://${location.hostname}:8000/ws`);
     console.log('Connecting to signalling server:', socket.url);
     let myId = null;
     console.log('Attempting to connect to signalling server:');
@@ -16,7 +16,7 @@ export function openSignallingSocket(onMessage) {
     };
 
     function send(msg) {
-      ws.readyState === 1 && ws.send(JSON.stringify(msg));
+      socket.readyState === 1 && socket.send(JSON.stringify(msg));
     }
 
     return { send, peerId: () => myId };
