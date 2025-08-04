@@ -2,11 +2,32 @@
 .clin-modal{
   background:#2a2a2a;border:1px solid #555;border-radius:10px;
   max-width:80vw;max-height:85vh;
-  padding:1rem;display:inline-flex;flex-direction:column;overflow:auto;
-  width: auto;
-  flex:0 1 auto;
-  resize:both;
+  padding:1rem;display:inline-flex;flex-direction:column;
+  box-sizing: border-box;
+  overflow: hidden;
+
 }
+
+.clin-top-bar{
+  display:flex;
+  width: 100%;
+}
+.clin-title{
+  flex:1;
+  justify-content: center;
+  margin:0 0 0.5rem 0;
+}
+
+.close-btn{
+  cursor:pointer;
+  margin: 0 0 0.5rem 0;
+}
+
+.close-btn:hover {
+  background: #444;
+  color: #fff;
+}
+
 .clin-fields{
   flex: 0 1 auto;
   min-width:0;

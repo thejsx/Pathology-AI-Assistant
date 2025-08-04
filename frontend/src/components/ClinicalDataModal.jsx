@@ -4,6 +4,7 @@ import {
   updateClinicalFields,  getClinicalData,  clinicalDocsRetrieve, uploadClinicalDoc, deleteClinicalDocs, processClinicalDocsLlmQuery 
 } from '../communications/mainServerAPI';
 import '../styles/ClinicalDataModal.css';
+import { Rnd } from 'react-rnd';
 
 export default function ClinicalDataModal({ open, onClose }) {
   const { caseId, clinSettings, setClinicalFieldValue, fetchClinicalData } = useGlobalStore();
@@ -16,6 +17,11 @@ export default function ClinicalDataModal({ open, onClose }) {
   const downOnOverlay = useRef(false);
 
   const [outputMsg, setOutputMsg] = useState('');
+
+  const initW = Math.min(700, window.innerWidth  * 0.8);   // 80 vw
+  const initH = Math.min(520, window.innerHeight * 0.85);  // 85 vh
+  const initX = (window.innerWidth  - initW) / 2;          // centred
+  const initY = (window.innerHeight - initH) / 2;
 
   async function refreshDocs() {
     if (!caseId) return;
@@ -172,8 +178,25 @@ export default function ClinicalDataModal({ open, onClose }) {
         }
       }}
     >
-      <div className="clin-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Clinical Data</h2>
+      <Rnd 
+        className="clin-modal" 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: 'inline-flex',
+          flexDirection: 'column',
+        }}
+        default={{ width: initW, height: initH, x: initX, y: initY }}
+        bounds="parent"
+        enableResizing={{ bottomRight: true, bottomLeft: true, topRight: true, topLeft: true }}
+      >
+        <div className="clin-top-bar">
+          <h2 className="clin-title">
+            Clinical Data
+          </h2>
+          <button className="close-btn" onClick={onClose} title="Close clinical data modal">
+            <span className="close-icon" aria-label="close modal">✖</span>
+          </button>
+        </div>
 
         <div className="clin-specimen-header">
           <div className="specimen-fields">
@@ -319,14 +342,14 @@ export default function ClinicalDataModal({ open, onClose }) {
               disabled={!docSummary.docs || !selected.size || loading}
               onClick={handleRegenerate}
             >
-              {loading ? <Spinner /> : 'Regenerate'}
+              {loading ? <Spinner /> : 'Generate'}
             </button>
 
             <div className="regen-output">{outputMsg}</div>
           </div>
 
         </div>
-      </div>
+      </Rnd>
     </div>
   );
 };

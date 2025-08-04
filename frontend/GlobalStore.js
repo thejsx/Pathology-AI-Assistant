@@ -66,8 +66,12 @@ const useGlobalStore = create((set, get) => ({
 
 
   // Case management helpers
-  setCaseId: (caseId) => set({ caseId }),
-  
+  setCaseId: (caseId) => {
+    set({ caseId });
+    // Reset selected images when case changes
+    set({ selectedImages: [] });
+  },
+
   fetchLatestCase: async () => {
     try {
       const data = await getLatestCase();

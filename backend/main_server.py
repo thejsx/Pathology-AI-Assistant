@@ -60,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         print(f"Client {client_id} disconnected")
         connections[:] = [conn for conn in connections if conn['ws'] != websocket]
-        await websocket.close()
+
 
 @app.post("/capture-image")
 async def capture_image(payload: models.ImagePayload, session = Depends(get_session)):

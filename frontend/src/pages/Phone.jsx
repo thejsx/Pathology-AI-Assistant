@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer/simplepeer.min.js";
 import { openSignallingSocket } from "../communications/signalling";
+import { getRearCameraStream } from "../utils/getRearStream";
+import "../styles/Phone.css"; // Assuming you have a CSS file for styling
 
 export default function Phone() {
   const videoRef  = useRef(null);
   const peerRef   = useRef(null);
   const sockRef   = useRef(null);
   const remoteId  = useRef(null);
+  const [camChoices, setCamChoices] = useState([]);
   const [status, setStatus] = useState("initialising…");
+  const [zoomInfo, setZoomInfo] = useState(null);
+  const [selectedId, setSelectedId] = useState("");
 
   const rtcConfig = {
     iceServers: [
@@ -21,28 +26,25 @@ export default function Phone() {
     let mounted = true;                           // helps us ignore late callbacks
 
     (async () => {
-      /* 1️⃣ rear camera ---------------------------------------------------- */
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const backCam = devices.find(
-        d => d.kind === "videoinput" && /back|rear|environment/i.test(d.label)
-      );
-      const stream = await navigator.mediaDevices.getUserMedia(
-        backCam ? { video: { deviceId: { exact: backCam.deviceId } } }
-                : { video: true }
-      );
+      /*  rear camera ---------------------------------------------------- */
+      const stream = await getRearCameraStream();
       if (!mounted) return;
       console.log("PHONE → camera stream ready:", stream);
+  
       videoRef.current.srcObject = stream;
-      console.log("PHONE → using camera:", backCam?.label ?? "default camera");
+      const track = stream.getVideoTracks()[0];
+      setSelectedId(track.getSettings().deviceId || "");
 
-      /* 2️⃣ signalling channel -------------------------------------------- */
+      /* list all camera devices */
+      const all = await navigator.mediaDevices.enumerateDevices();
+      setCamChoices(all.filter(d => d.kind === "videoinput"));
+
+      /* signalling channel -------------------------------------------- */
       sockRef.current = openSignallingSocket(handleSignal);
 
-      /* 3️⃣ when we learn our socket-ID, create the Peer ------------------- */
+      /* when we learn our socket-ID, create the Peer ------------------- */
 
       const wait = setInterval(() => {
-
-
         const me = sockRef.current.peerId();
         if (!me) return;
 
@@ -67,11 +69,11 @@ export default function Phone() {
           console.log("PHONE ICE →", peerRef.current._pc.iceConnectionState)
         );
 
-      }, 5000);
+      }, 50);
 
     })();
 
-    /* 🔚 cleanup on unmount / HMR ----------------------------------------- */
+    /*  cleanup on unmount / HMR ----------------------------------------- */
     return () => {
 
       mounted = false;
@@ -121,17 +123,71 @@ export default function Phone() {
     }
   }
 
+  async function switchCam(e) {
+    const deviceId = e.target.value;
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } }
+    });
+    /* swap tracks locally */
+    const oldTrack = videoRef.current.srcObject.getVideoTracks()[0];
+    const newTrack = newStream.getVideoTracks()[0];
+    videoRef.current.srcObject = newStream;
+
+    /* tell simple-peer about the replacement */
+    peerRef.current.replaceTrack(oldTrack, newTrack, videoRef.current.srcObject);
+  }
+
+  useEffect(() => {
+    const stream = videoRef.current?.srcObject;
+    if (!stream) return;                            // nothing to inspect yet
+
+    const track = stream.getVideoTracks()[0];
+    const caps  = track.getCapabilities?.() || {};
+
+    if ('zoom' in caps) {
+      const cur = track.getSettings().zoom ?? caps.zoom.min;
+      setZoomInfo({ track, min: caps.zoom.min, max: caps.zoom.max,
+                    step: caps.zoom.step ?? 1, cur });
+    } else {
+      setZoomInfo(null);                            // hide slider if unsupported
+    }
+  }, [videoRef.current?.srcObject]);    
+
   return (
-    <div>
-      <h2>Phone – camera publisher</h2>
-      <p>{status}</p>
+    <div className="video-wrapper">
       <video
         ref={videoRef}
         playsInline
         muted
         autoPlay
-        width="100%"
+        className="stream-video"
       />
+      <div className="controls-overlay">
+        <select value={selectedId} onChange={switchCam}>
+          {camChoices.map(d => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || "camera"}
+            </option>
+          ))}
+        </select>
+
+        {zoomInfo && (
+          <div className="zoom-row">
+            <span>{zoomInfo.min}×</span>
+            <input
+              type="range"
+              min={zoomInfo.min}
+              max={zoomInfo.max}
+              step={zoomInfo.step}
+              defaultValue={zoomInfo.cur}
+              onChange={e =>
+                zoomInfo.track.applyConstraints({ zoom: Number(e.target.value) })
+              }
+            />
+            <span>{zoomInfo.max}×</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

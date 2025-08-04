@@ -1,0 +1,50 @@
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 100vh;          /* keeps full-screen feel */
+  overflow: hidden;
+}
+
+.stream-video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.controls-overlay {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.controls-overlay select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  border: none;
+  outline: none;
+  background: #222;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.zoom-row input[type="range"] {
+  flex: 1;
+  accent-color: #4caf50;      /* bright thumb / track */
+  height: 4px;
+}

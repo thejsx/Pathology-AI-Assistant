@@ -1,6 +1,7 @@
 import React, { use, useEffect } from 'react';
 import useGlobalStore from '../../GlobalStore';
 import '../styles/HistoryModal.css';           // small css (below)
+import useDraggable from '../hooks/useDraggable';
 
 export default function HistoryModal({ open, onClose }) {
   const {
@@ -12,6 +13,15 @@ export default function HistoryModal({ open, onClose }) {
     clearHistory,
     fetchHistory,
   } = useGlobalStore();
+  const modalRef = React.useRef(null);
+  const initialModalPos = React.useMemo(() => ({ x: 300, y: 60 }), []);
+  const [modalKey, setModalKey] = React.useState(0); // to force re-render on modal open
+
+  useEffect(() => {
+      if (open) {
+        setModalKey((prev) => prev + 1);
+      }
+    }, [open]);
 
   /* load fresh copy whenever opened */
   useEffect(() => {
@@ -22,12 +32,16 @@ export default function HistoryModal({ open, onClose }) {
     }
   }, [open]);
 
+  const modalPos = useDraggable(modalRef, initialModalPos, modalKey);
+
   if (!open) return null;
 
   return (
     <div className="hist-overlay" onClick={onClose}>
       <div
         className="hist-modal"
+        ref={modalRef}
+        style={{ position: 'fixed', top: modalPos.y, left: modalPos.x }}
         onClick={(e) => e.stopPropagation()}    /* keep clicks inside */
       >
         <h2>LLM Call History</h2>
