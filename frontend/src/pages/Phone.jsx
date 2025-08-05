@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer/simplepeer.min.js";
 import { openSignallingSocket } from "../communications/signalling";
 import { getRearCameraStream } from "../utils/getRearStream";
-import "../styles/Phone.css"; // Assuming you have a CSS file for styling
+import "../styles/Phone.css"; 
 
 export default function Phone() {
   const videoRef  = useRef(null);
@@ -123,18 +123,82 @@ export default function Phone() {
     }
   }
 
+
+
+  /* open the requested camera device and return a MediaStream */
+  async function openCamera(deviceId) {
+    return navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } }   // no size hints at all
+    });
+  }
+
+  function waitTrackEnded(track, timeout = 500) {
+    console.log("Track ending:", track.label);
+    return new Promise(res => {
+      if (track.readyState === "ended") return res();          // already free
+
+      const onEnded = () => {
+        clearTimeout(timer);
+        res();
+      };
+      track.addEventListener("ended", onEnded, { once: true });
+
+      /* fallback: resolve anyway after 0.5 s */
+      const timer = setTimeout(() => {
+        track.removeEventListener("ended", onEnded);
+        res();
+      }, timeout);
+    });
+  }
+
   async function switchCam(e) {
     const deviceId = e.target.value;
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: { exact: deviceId } }
-    });
-    /* swap tracks locally */
-    const oldTrack = videoRef.current.srcObject.getVideoTracks()[0];
-    const newTrack = newStream.getVideoTracks()[0];
-    videoRef.current.srcObject = newStream;
 
-    /* tell simple-peer about the replacement */
-    peerRef.current.replaceTrack(oldTrack, newTrack, videoRef.current.srcObject);
+    if (deviceId === selectedId) return;  
+
+    /* 1. Drop the current peer so no track is pinned in WebRTC */
+    peerRef.current?.destroy();
+    peerRef.current = null;
+
+    /* 2. Release the hardware completely */
+    const oldStream = videoRef.current.srcObject;
+    if (oldStream) {
+      await Promise.all(oldStream.getTracks().map(t => waitTrackEnded(t)));
+    }
+    console.log("PHONE → camera tracks stopped");
+    videoRef.current.srcObject = null;
+
+    /* 3. Open the requested lens */
+
+    let newStream;
+    try {
+      newStream = await openCamera(deviceId);
+    } catch (err) {
+      console.error("switchCam getUserMedia failed:", err);
+      // fall back to the previous stream so the UI doesn’t go dark
+      videoRef.current.srcObject = oldStream;
+      return;
+    }
+
+    videoRef.current.srcObject = newStream;
+    setSelectedId(deviceId);
+
+    /* 4. Spin up a brand-new peer that streams the new track */
+    const me = sockRef.current.peerId();          // we already have a socket
+    remoteId.current = null;                      // force viewer to announce again
+
+    peerRef.current = new Peer({ initiator: true, stream: newStream, config: rtcConfig });
+    peerRef.current.on("signal", data =>
+      sockRef.current.send({
+        type: data.type ?? "candidate",
+        target: null,                             // broadcast; viewer will respond
+        from: me,
+        data
+      })
+    );
+    peerRef.current.on("iceStateChange", () =>
+      console.log("PHONE ICE →", peerRef.current._pc.iceConnectionState)
+    );
   }
 
   useEffect(() => {
