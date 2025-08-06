@@ -8,6 +8,8 @@ export const defaultSettings = {
   offsetX: 0,
   offsetY: 0,
   flipX: false,
+  cropToVideo: false,  // Crop to video feature
+  autoSelectCaptured: false,  // Auto-select newly captured images
   reasoningEffort: 'medium',
   maxTokens: 2000,
   defaultPrompt: "",

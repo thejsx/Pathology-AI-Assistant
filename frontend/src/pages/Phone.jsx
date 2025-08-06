@@ -124,36 +124,24 @@ export default function Phone() {
   }
 
 
+  useEffect(() => {
+    const stream = videoRef.current?.srcObject;
+    if (!stream) return;                            // nothing to inspect yet
 
-  /* open the requested camera device and return a MediaStream */
-  async function openCamera(deviceId) {
-    return navigator.mediaDevices.getUserMedia({
-      video: { deviceId: { exact: deviceId } }   // no size hints at all
-    });
-  }
+    const track = stream.getVideoTracks()[0];
+    const caps  = track.getCapabilities?.() || {};
 
-  function waitTrackEnded(track, timeout = 500) {
-    console.log("Track ending:", track.label);
-    return new Promise(res => {
-      if (track.readyState === "ended") return res();          // already free
-
-      const onEnded = () => {
-        clearTimeout(timer);
-        res();
-      };
-      track.addEventListener("ended", onEnded, { once: true });
-
-      /* fallback: resolve anyway after 0.5 s */
-      const timer = setTimeout(() => {
-        track.removeEventListener("ended", onEnded);
-        res();
-      }, timeout);
-    });
-  }
-
+    if ('zoom' in caps) {
+      const cur = track.getSettings().zoom ?? caps.zoom.min;
+      setZoomInfo({ track, min: caps.zoom.min, max: caps.zoom.max,
+                    step: caps.zoom.step ?? 1, cur });
+    } else {
+      setZoomInfo(null);                            // hide slider if unsupported
+    }
+  }, [videoRef.current?.srcObject]);   
+  
   async function switchCam(e) {
     const deviceId = e.target.value;
-
     if (deviceId === selectedId) return;  
 
     /* 1. Drop the current peer so no track is pinned in WebRTC */
@@ -161,20 +149,22 @@ export default function Phone() {
     peerRef.current = null;
 
     /* 2. Release the hardware completely */
-    const oldStream = videoRef.current.srcObject;
-    if (oldStream) {
-      await Promise.all(oldStream.getTracks().map(t => waitTrackEnded(t)));
+    if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => {
+            console.log("Stopping track:", track.label);
+            track.stop(); // This is the essential call that was missing
+        });
+        videoRef.current.srcObject = null;
     }
-    console.log("PHONE → camera tracks stopped");
-    videoRef.current.srcObject = null;
 
     /* 3. Open the requested lens */
-
     let newStream;
     try {
-      newStream = await openCamera(deviceId);
+      newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } }
+      });
     } catch (err) {
-      console.error("switchCam getUserMedia failed:", err);
+      console.error("GETUSERMEDIA FAILED:", err);
       // fall back to the previous stream so the UI doesn’t go dark
       videoRef.current.srcObject = oldStream;
       return;
@@ -200,22 +190,6 @@ export default function Phone() {
       console.log("PHONE ICE →", peerRef.current._pc.iceConnectionState)
     );
   }
-
-  useEffect(() => {
-    const stream = videoRef.current?.srcObject;
-    if (!stream) return;                            // nothing to inspect yet
-
-    const track = stream.getVideoTracks()[0];
-    const caps  = track.getCapabilities?.() || {};
-
-    if ('zoom' in caps) {
-      const cur = track.getSettings().zoom ?? caps.zoom.min;
-      setZoomInfo({ track, min: caps.zoom.min, max: caps.zoom.max,
-                    step: caps.zoom.step ?? 1, cur });
-    } else {
-      setZoomInfo(null);                            // hide slider if unsupported
-    }
-  }, [videoRef.current?.srcObject]);    
 
   return (
     <div className="video-wrapper">

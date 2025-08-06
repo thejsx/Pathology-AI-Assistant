@@ -39,10 +39,19 @@ export default function SideBar({ streamRef }) {
     const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
-        const handleImageCaptured = () => loadImages();
+        const handleImageCaptured = async (event) => {
+            await loadImages();
+            
+            // Auto-select the newly captured image if the setting is enabled
+            const { settings } = useGlobalStore.getState();
+            if (settings.autoSelectCaptured && event.detail?.filename) {   
+                setSelectedImages([...selectedImages, event.detail.filename]);
+            }
+        };
+        
         window.addEventListener('imageCaptured', handleImageCaptured);
         return () => window.removeEventListener('imageCaptured', handleImageCaptured);
-    }, [caseId, serverImages]);
+    }, [caseId]);
 
 
     useEffect(() => {

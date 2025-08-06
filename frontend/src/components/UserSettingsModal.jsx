@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import useGlobalStore, { defaultSettings } from '../../GlobalStore';
-import '../styles/UserSettingsModal.css'; // small layout rules
-import useDraggable from '../hooks/useDraggable';
+import '../styles/UserSettingsModal.css';
+import { Rnd } from 'react-rnd';
 
 export default function UserSettingsModal({ open, onClose }) {
   const {
@@ -12,18 +12,13 @@ export default function UserSettingsModal({ open, onClose }) {
     fetchUserSettings,
   } = useGlobalStore();
 
-  // draggable modal (always hook before any returns)
-  const modalRef = React.useRef(null);
-  const initialModalPos = React.useMemo(() => ({ x: 300, y: 60 }), []);
-  const [modalKey, setModalKey] = React.useState(0); // to force re-render on modal open
-
-  useEffect(() => {
-    if (open) {
-      setModalKey((prev) => prev + 1);
-    }
-  }, [open]);
-
-  const modalPos = useDraggable(modalRef, initialModalPos, modalKey);
+  const downOnOverlay = React.useRef(false);
+  
+  // Calculate initial position and size
+  const initW = Math.min(600, window.innerWidth * 0.8);
+  const initH = Math.min(650, window.innerHeight * 0.85);
+  const initX = (window.innerWidth - initW) / 2;
+  const initY = (window.innerHeight - initH) / 2;
   
   if (!open) return null;
 
@@ -32,15 +27,45 @@ export default function UserSettingsModal({ open, onClose }) {
   
 
   return (
-    <div className="settings-overlay" onClick={onClose}>
-      <div
-        className="settings-modal"
-        ref={modalRef}
-        style={{ position: 'fixed', top: modalPos.y, left: modalPos.x }}
-        onClick={(e) => e.stopPropagation()}
+    <div 
+      className="settings-overlay" 
+      onMouseDown={(e) => {downOnOverlay.current = e.target === e.currentTarget;}}
+      onClick={(e) => {
+        if (downOnOverlay.current && e.target === e.currentTarget) {
+          onClose();
+          downOnOverlay.current = false;
+        }
+      }}
+    >
+      <Rnd
+        className="settings-modal-rnd"
+        default={{ width: initW, height: initH, x: initX, y: initY }}
+        bounds="parent"
+        enableResizing={{ 
+          bottomRight: true, 
+          bottomLeft: true, 
+          topRight: true, 
+          topLeft: true,
+          bottom: true,
+          right: true,
+          left: true,
+          top: true
+        }}
+        minWidth={400}
+        minHeight={450}
+        dragHandleClassName="settings-header"
       >
-        <h3>User Settings</h3>
-        <div className="settings-content">
+        <div className="settings-modal-modern">
+          <div className="settings-header">
+            <h3 className="settings-title">
+              <span className="settings-icon">⚙️</span>
+              User Settings
+            </h3>
+            <button className="settings-close-btn" onClick={onClose} title="Close settings">
+              <span aria-label="close">✕</span>
+            </button>
+          </div>
+          <div className="settings-content">
 
           {/* ---------------- LLM params ---------------- */}
           <fieldset>
@@ -73,9 +98,7 @@ export default function UserSettingsModal({ open, onClose }) {
                       columns="50"
                       value={settings.defaultPrompt}
                       onChange={(e) => updateSetting('defaultPrompt', e.target.value)}
-                  >
-                      {settings.defaultPrompt}
-                  </textarea>
+                  />
               </label>
               <label>
                   Include LLM history&nbsp;
@@ -93,7 +116,7 @@ export default function UserSettingsModal({ open, onClose }) {
                       onChange={(e) => updateSetting('includeClinicalData', e.target.checked)}
                   />
               </label>
-                          <label className="sub-option">
+              <label className="sub-option">
                 <input
                   type="radio"
                   name="clinSummaryMode"
@@ -173,7 +196,35 @@ export default function UserSettingsModal({ open, onClose }) {
             </label>
           </fieldset>
 
-          
+          {/* ---------------- Capture Settings ---------------- */}
+          <fieldset>
+            <legend>Capture Settings</legend>
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.cropToVideo || false}
+                onChange={(e) => updateSetting('cropToVideo', e.target.checked)}
+              />
+              Crop to Video
+            </label>
+            <div className="settings-hint">
+              When enabled, captures only the video content without black borders.
+              When disabled, captures the full frame including any black areas.
+            </div>
+            
+            <label style={{ marginTop: '8px' }}>
+              <input
+                type="checkbox"
+                checked={settings.autoSelectCaptured || false}
+                onChange={(e) => updateSetting('autoSelectCaptured', e.target.checked)}
+              />
+              Auto-select Captured Images
+            </label>
+            <div className="settings-hint">
+              When enabled, newly captured images are automatically selected for LLM queries.
+              When disabled, images must be manually selected after capture.
+            </div>
+          </fieldset>
 
           {/* ---------------- User Interface ---------------- */}
           <fieldset>
@@ -222,8 +273,8 @@ export default function UserSettingsModal({ open, onClose }) {
           <button onClick={saveCurrentAsUser}>Update User</button>
           <button onClick={fetchUserSettings}>Use Stored Settings</button>
         </div>
-      </div>
-      
+        </div>
+      </Rnd> {/* <-- This was the missing closing tag --> */}
     </div>
   );
 }
